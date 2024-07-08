@@ -2,6 +2,16 @@
 
 Library and ROS nodes for manipulating and analysing pointclouds.
 
+## Prerequisites
+
+* Eigen3
+* PCL
+* [convert](https://github.com/willat343/convert/tree/main)
+* pcl_conversions (`apt` install)
+* pcl_ros (`apt` install)
+* [eigen_ext](https://github.com/willat343/eigen_ext) (in catkin workspace)
+* [statistics_msgs](https://github.com/willat343/statistics_msgs) (in catkin workspace)
+
 ## pointcloud_tools_ros
 
 ### Pointcloud Analyser
