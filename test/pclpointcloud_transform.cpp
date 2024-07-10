@@ -2,7 +2,8 @@
 
 #include <gtest/gtest.h>
 
-#include "eigen_ext/geometry.hpp"
+#include <convert/convert.hpp>
+
 #include "pointcloud_tools/point_types.hpp"
 #include "test_instances.hpp"
 
@@ -20,7 +21,7 @@ TEST(transform_pointcloud_with_normals_and_unit_vectors, four_point_cloud) {
         pcl::PointCloud<PointNormalUnit> transformed_pointcloud;
         Eigen::Vector3f t{2.f, 3.f, 4.f};
         Eigen::Quaternionf q = Eigen::Quaternionf{1.f, 2.f, 3.f, 4.f}.normalized();
-        Eigen::Transform<float, 3, Eigen::Isometry> tf = eigen_ext::to_transform(t, q);
+        Eigen::Isometry3f tf = convert::to<Eigen::Isometry3f, Eigen::Vector3f, Eigen::Quaternionf>(t, q);
         pct::transform_pointcloud_with_normals_and_unit_vectors(pointcloud, transformed_pointcloud, tf.matrix(), true);
         EXPECT_EQ(transformed_pointcloud.size(), pointcloud.size());
         for (std::size_t i = 0; i < pointcloud.size(); ++i) {

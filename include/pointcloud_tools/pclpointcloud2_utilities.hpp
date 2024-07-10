@@ -6,6 +6,7 @@
 #include <statistics_msgs/SummaryStatistics.h>
 #include <statistics_msgs/SummaryStatisticsArray.h>
 
+#include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <string>
 #include <vector>
@@ -268,9 +269,6 @@ void resize(pcl::PCLPointCloud2& pointcloud, const std::uint32_t width, const st
 
 std::uint32_t row_step(const pcl::PCLPointCloud2& pointcloud);
 
-template<typename T = float>
-std::vector<Eigen::Matrix<T, 3, 1>> polar_coordinates(const pcl::PCLPointCloud2& pointcloud);
-
 void scale_field(pcl::PCLPointCloud2& pointcloud, const pcl::PCLPointField& field, const double scale);
 
 void scale_field(pcl::PCLPointCloud2& pointcloud, const std::string& name, const double scale);
@@ -293,6 +291,9 @@ void set_field_data(pcl::PCLPointCloud2& pointcloud, const pcl::PCLPointField& f
 std::uint32_t size_bytes(const pcl::PCLPointCloud2& pointcloud);
 
 std::uint32_t size_points(const pcl::PCLPointCloud2& pointcloud);
+
+template<typename T = float>
+std::vector<Eigen::Matrix<T, 3, 1>> spherical_coordinates(const pcl::PCLPointCloud2& pointcloud);
 
 template<typename T = double>
 T standard_deviation(const pcl::PCLPointCloud2& pointcloud, const pcl::PCLPointField& field, const double mean);

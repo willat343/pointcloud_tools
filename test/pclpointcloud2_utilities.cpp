@@ -2,8 +2,8 @@
 
 #include <gtest/gtest.h>
 
-#include "eigen_ext/covariance.hpp"
-#include "eigen_ext/geometry.hpp"
+#include <convert/convert.hpp>
+
 #include "test_instances.hpp"
 
 #define N (10)
@@ -65,24 +65,26 @@ TEST(add_unit_vectors, float_points) {
         pointcloud.push_back(test_xyz(static_cast<float>(i)));
         pcl::PCLPointCloud2 pointcloud2;
         pcl::toPCLPointCloud2(pointcloud, pointcloud2);
-        if (i == 0) {
-            EXPECT_THROW(pct::add_unit_vectors(pointcloud2), std::runtime_error);
-        } else {
-            pcl::PCLPointCloud2 pointcloud2_with_unit_vectors = pct::add_unit_vectors(pointcloud2);
-            const pcl::PCLPointField& ux_field = pct::get_field(pointcloud2_with_unit_vectors, "ux");
-            const pcl::PCLPointField& uy_field = pct::get_field(pointcloud2_with_unit_vectors, "uy");
-            const pcl::PCLPointField& uz_field = pct::get_field(pointcloud2_with_unit_vectors, "uz");
-            Eigen::Matrix<float, 3, 4> expected_unit_vectors;
-            expected_unit_vectors << Eigen::Vector3f({1.f, 0.f, 0.f}), Eigen::Vector3f({0.f, 1.f, 0.f}),
-                    Eigen::Vector3f({0.f, 0.f, 1.f}), Eigen::Vector3f({1.f, 1.f, 1.f}).normalized();
-            const std::size_t num_points = pct::size_points(pointcloud2_with_unit_vectors);
-            for (std::size_t i = 0; i < num_points; ++i) {
-                EXPECT_NEAR(pct::field_data<float>(pointcloud2_with_unit_vectors, ux_field, i),
-                        expected_unit_vectors(0, i), FLOAT_PRECISION);
-                EXPECT_NEAR(pct::field_data<float>(pointcloud2_with_unit_vectors, uy_field, i),
-                        expected_unit_vectors(1, i), FLOAT_PRECISION);
-                EXPECT_NEAR(pct::field_data<float>(pointcloud2_with_unit_vectors, uz_field, i),
-                        expected_unit_vectors(2, i), FLOAT_PRECISION);
+        pcl::PCLPointCloud2 pointcloud2_with_unit_vectors = pct::add_unit_vectors(pointcloud2);
+        const pcl::PCLPointField& ux_field = pct::get_field(pointcloud2_with_unit_vectors, "ux");
+        const pcl::PCLPointField& uy_field = pct::get_field(pointcloud2_with_unit_vectors, "uy");
+        const pcl::PCLPointField& uz_field = pct::get_field(pointcloud2_with_unit_vectors, "uz");
+        Eigen::Matrix<float, 3, 4> expected_unit_vectors;
+        expected_unit_vectors << Eigen::Vector3f({1.f, 0.f, 0.f}), Eigen::Vector3f({0.f, 1.f, 0.f}),
+                Eigen::Vector3f({0.f, 0.f, 1.f}), Eigen::Vector3f({1.f, 1.f, 1.f}).normalized();
+        const std::size_t num_points = pct::size_points(pointcloud2_with_unit_vectors);
+        for (std::size_t j = 0; j < num_points; ++j) {
+            if (i == 0) {
+                EXPECT_EQ(pct::field_data<float>(pointcloud2_with_unit_vectors, ux_field, j), 0);
+                EXPECT_EQ(pct::field_data<float>(pointcloud2_with_unit_vectors, uy_field, j), 0);
+                EXPECT_EQ(pct::field_data<float>(pointcloud2_with_unit_vectors, uz_field, j), 0);
+            } else {
+                EXPECT_NEAR(pct::field_data<float>(pointcloud2_with_unit_vectors, ux_field, j),
+                        expected_unit_vectors(0, j), FLOAT_PRECISION);
+                EXPECT_NEAR(pct::field_data<float>(pointcloud2_with_unit_vectors, uy_field, j),
+                        expected_unit_vectors(1, j), FLOAT_PRECISION);
+                EXPECT_NEAR(pct::field_data<float>(pointcloud2_with_unit_vectors, uz_field, j),
+                        expected_unit_vectors(2, j), FLOAT_PRECISION);
             }
         }
     }
@@ -108,10 +110,10 @@ TEST(cast, pointxyz_float32_to_int32) {
         auto get_z_field_data = pct::create_get_field_data_function<int,
                 pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::INT32>::type>(
                 pct::get_field(pointcloud2, "z"));
-        for (std::size_t i = 0; i < pointcloud.size(); ++i) {
-            EXPECT_EQ(get_x_field_data(pointcloud2, i), static_cast<int>(pointcloud[i].x));
-            EXPECT_EQ(get_y_field_data(pointcloud2, i), static_cast<int>(pointcloud[i].y));
-            EXPECT_EQ(get_z_field_data(pointcloud2, i), static_cast<int>(pointcloud[i].z));
+        for (std::size_t j = 0; j < pointcloud.size(); ++j) {
+            EXPECT_EQ(get_x_field_data(pointcloud2, j), static_cast<int>(pointcloud[j].x));
+            EXPECT_EQ(get_y_field_data(pointcloud2, j), static_cast<int>(pointcloud[j].y));
+            EXPECT_EQ(get_z_field_data(pointcloud2, j), static_cast<int>(pointcloud[j].z));
         }
     }
 }
@@ -184,10 +186,10 @@ TEST(cast_field_with_scale, pointxyz_float32_to_int32) {
         auto get_z_field_data = pct::create_get_field_data_function<int,
                 pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::INT32>::type>(
                 pct::get_field(pointcloud2, "z"));
-        for (std::size_t i = 0; i < pointcloud.size(); ++i) {
-            EXPECT_EQ(get_x_field_data(pointcloud2, i), static_cast<int>(pointcloud[i].x * scale));
-            EXPECT_EQ(get_y_field_data(pointcloud2, i), static_cast<int>(pointcloud[i].y * scale));
-            EXPECT_EQ(get_z_field_data(pointcloud2, i), static_cast<int>(pointcloud[i].z * scale));
+        for (std::size_t j = 0; j < pointcloud.size(); ++j) {
+            EXPECT_EQ(get_x_field_data(pointcloud2, j), static_cast<int>(pointcloud[j].x * scale));
+            EXPECT_EQ(get_y_field_data(pointcloud2, j), static_cast<int>(pointcloud[j].y * scale));
+            EXPECT_EQ(get_z_field_data(pointcloud2, j), static_cast<int>(pointcloud[j].z * scale));
         }
     }
 }
@@ -287,7 +289,8 @@ TEST(deskew, pointxyz_translation_to_start) {
         EXPECT_NEAR(get_t_field_data(pointcloud2, 2), 0.1f, FLOAT_PRECISION);
 
         Eigen::Vector3d translation{1.0, 2.0, 3.0};
-        Eigen::Isometry3d tf = eigen_ext::to_transform(translation, Eigen::Quaterniond::Identity());
+        Eigen::Isometry3d tf = convert::to<Eigen::Isometry3d, Eigen::Vector3d, Eigen::Quaterniond>(translation,
+                Eigen::Quaterniond::Identity());
         const auto new_time = pointcloud2.header.stamp;
         pcl::PCLPointCloud2 pointcloud2_deskewed;
         pct::deskew(tf, 0.1, new_time, pointcloud2, pointcloud2_deskewed);
@@ -343,7 +346,8 @@ TEST(deskew, pointxyz_translation_to_mid) {
         EXPECT_NEAR(get_t_field_data(pointcloud2, 2), 0.1f, FLOAT_PRECISION);
 
         Eigen::Vector3d translation{1.0, 2.0, 3.0};
-        Eigen::Isometry3d tf = eigen_ext::to_transform(translation, Eigen::Quaterniond::Identity());
+        Eigen::Isometry3d tf = convert::to<Eigen::Isometry3d, Eigen::Vector3d, Eigen::Quaterniond>(translation,
+                Eigen::Quaterniond::Identity());
         const auto new_time = pointcloud2.header.stamp + 50000;  // 0.05s = 50000 us
         pcl::PCLPointCloud2 pointcloud2_deskewed;
         pct::deskew(tf, 0.1, new_time, pointcloud2, pointcloud2_deskewed);
@@ -399,7 +403,8 @@ TEST(deskew, pointxyz_translation_to_end) {
         EXPECT_NEAR(get_t_field_data(pointcloud2, 2), 0.1f, FLOAT_PRECISION);
 
         Eigen::Vector3d translation{1.0, 2.0, 3.0};
-        Eigen::Isometry3d tf = eigen_ext::to_transform(translation, Eigen::Quaterniond::Identity());
+        Eigen::Isometry3d tf = convert::to<Eigen::Isometry3d, Eigen::Vector3d, Eigen::Quaterniond>(translation,
+                Eigen::Quaterniond::Identity());
         const auto new_time = pointcloud2.header.stamp + 100000;  // 0.1s = 100000 us
         pcl::PCLPointCloud2 pointcloud2_deskewed;
         pct::deskew(tf, 0.1, new_time, pointcloud2, pointcloud2_deskewed);
@@ -453,7 +458,7 @@ TEST(filter_max, pointxyz_double) {
         pct::filter_max<double>(pointcloud2, pointcloud2_x, "x", -0.6f);
         pct::filter_max<double>(pointcloud2, pointcloud2_y, "y", 1.9f);
         pct::filter_max<double>(pointcloud2, pointcloud2_z, "z", 2.9f);
-        for (std::size_t i = 0; i < pointcloud.size(); ++i) {
+        for (std::size_t j = 0; j < pointcloud.size(); ++j) {
             EXPECT_EQ(pct::size_points(pointcloud2_x), 2);
             EXPECT_EQ(pct::size_points(pointcloud2_y), 1);
             EXPECT_EQ(pct::size_points(pointcloud2_z), 0);
@@ -574,10 +579,10 @@ TEST(scale_field, pointxyz) {
         auto get_x_field_data = pct::create_get_field_data_function<float>(pct::get_field(pointcloud2, "x"));
         auto get_y_field_data = pct::create_get_field_data_function<float>(pct::get_field(pointcloud2, "y"));
         auto get_z_field_data = pct::create_get_field_data_function<float>(pct::get_field(pointcloud2, "z"));
-        for (std::size_t i = 0; i < pointcloud.size(); ++i) {
-            EXPECT_NEAR(get_x_field_data(pointcloud2, i), pointcloud[i].x * scale, RELAXED_FLOAT_PRECISION);
-            EXPECT_NEAR(get_y_field_data(pointcloud2, i), pointcloud[i].y * scale, RELAXED_FLOAT_PRECISION);
-            EXPECT_NEAR(get_z_field_data(pointcloud2, i), pointcloud[i].z * scale, RELAXED_FLOAT_PRECISION);
+        for (std::size_t j = 0; j < pointcloud.size(); ++j) {
+            EXPECT_NEAR(get_x_field_data(pointcloud2, j), pointcloud[j].x * scale, RELAXED_FLOAT_PRECISION);
+            EXPECT_NEAR(get_y_field_data(pointcloud2, j), pointcloud[j].y * scale, RELAXED_FLOAT_PRECISION);
+            EXPECT_NEAR(get_z_field_data(pointcloud2, j), pointcloud[j].z * scale, RELAXED_FLOAT_PRECISION);
         }
     }
 }
@@ -632,12 +637,15 @@ TEST(unit_vectors, float_points) {
         pointcloud.push_back(test_xyz(static_cast<float>(i)));
         pcl::PCLPointCloud2 pointcloud2;
         pcl::toPCLPointCloud2(pointcloud, pointcloud2);
+        Eigen::Matrix<float, 3, Eigen::Dynamic> unit_vectors = pct::unit_vectors<float>(pointcloud2);
+        EXPECT_EQ(unit_vectors.rows(), 3);
+        EXPECT_EQ(unit_vectors.cols(), 4);
         if (i == 0) {
-            EXPECT_THROW(pct::unit_vectors<float>(pointcloud2), std::runtime_error);
+            EXPECT_TRUE(unit_vectors.col(0).isApprox(Eigen::Vector3f::Zero()));
+            EXPECT_TRUE(unit_vectors.col(1).isApprox(Eigen::Vector3f::Zero()));
+            EXPECT_TRUE(unit_vectors.col(2).isApprox(Eigen::Vector3f::Zero()));
+            EXPECT_TRUE(unit_vectors.col(3).isApprox(Eigen::Vector3f::Zero()));
         } else {
-            Eigen::Matrix<float, 3, Eigen::Dynamic> unit_vectors = pct::unit_vectors<float>(pointcloud2);
-            EXPECT_EQ(unit_vectors.rows(), 3);
-            EXPECT_EQ(unit_vectors.cols(), 4);
             EXPECT_TRUE(unit_vectors.col(0).isApprox(Eigen::Vector3f({1.f, 0.f, 0.f})));
             EXPECT_TRUE(unit_vectors.col(1).isApprox(Eigen::Vector3f({0.f, 1.f, 0.f})));
             EXPECT_TRUE(unit_vectors.col(2).isApprox(Eigen::Vector3f({0.f, 0.f, 1.f})));

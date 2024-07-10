@@ -1,7 +1,7 @@
 #ifndef POINTCLOUD_TOOLS_IMPL_PCLPOINTCLOUD2_UTILITIES_HPP
 #define POINTCLOUD_TOOLS_IMPL_PCLPOINTCLOUD2_UTILITIES_HPP
 
-#include <eigen_ext/geometry.hpp>
+#include <mathbox/nsphere.hpp>
 
 #include "pointcloud_tools/pclpointcloud2_utilities.hpp"
 
@@ -648,25 +648,25 @@ void scale_and_cast_field(pcl::PCLPointCloud2& pointcloud, const std::string& na
     return scale_and_cast_field<type>(pointcloud, name, scale);
 }
 
-template<typename T = float>
-Eigen::Matrix<T, 3, Eigen::Dynamic> polar_coordinates(const pcl::PCLPointCloud2& pointcloud) {
-    auto get_x_field_data = create_get_field_data_function<T>(get_field(pointcloud, "x"));
-    auto get_y_field_data = create_get_field_data_function<T>(get_field(pointcloud, "y"));
-    auto get_z_field_data = create_get_field_data_function<T>(get_field(pointcloud, "z"));
-    Eigen::Matrix<T, 3, Eigen::Dynamic> polar_points;
-    const std::size_t num_points = size_points(pointcloud);
-    polar_points.resize(Eigen::NoChange, num_points);
-    for (std::size_t i = 0; i < num_points; ++i) {
-        polar_points.col(i) = eigen_ext::cartesian_to_polar<T>(get_x_field_data(pointcloud, i),
-                get_y_field_data(pointcloud, i), get_z_field_data(pointcloud, i));
-    }
-    return polar_points;
-}
-
 template<typename InT>
 void set_field_data(pcl::PCLPointCloud2& pointcloud, const pcl::PCLPointField& field, const std::size_t i,
         const InT value) {
     return create_set_field_data_function<InT>(field)(pointcloud, i, value);
+}
+
+template<typename T = float>
+Eigen::Matrix<T, 3, Eigen::Dynamic> spherical_coordinates(const pcl::PCLPointCloud2& pointcloud) {
+    auto get_x_field_data = create_get_field_data_function<T>(get_field(pointcloud, "x"));
+    auto get_y_field_data = create_get_field_data_function<T>(get_field(pointcloud, "y"));
+    auto get_z_field_data = create_get_field_data_function<T>(get_field(pointcloud, "z"));
+    Eigen::Matrix<T, 3, Eigen::Dynamic> spherical_points;
+    const std::size_t num_points = size_points(pointcloud);
+    spherical_points.resize(Eigen::NoChange, num_points);
+    for (std::size_t i = 0; i < num_points; ++i) {
+        spherical_points.col(i) = math::cartesian_to_spherical<3, T>(Eigen::Matrix<T, 3, 1>{
+                get_x_field_data(pointcloud, i), get_y_field_data(pointcloud, i), get_z_field_data(pointcloud, i)});
+    }
+    return spherical_points;
 }
 
 template<typename T = double>
@@ -714,8 +714,9 @@ Eigen::Matrix<T, 3, Eigen::Dynamic> unit_vectors(const pcl::PCLPointCloud2& poin
     const std::size_t num_points = size_points(pointcloud);
     unit_vectors.resize(Eigen::NoChange, num_points);
     for (std::size_t i = 0; i < num_points; ++i) {
-        unit_vectors.col(i) = eigen_ext::safe_normalise(convert_x_field_data(pointcloud, i),
-                convert_y_field_data(pointcloud, i), convert_z_field_data(pointcloud, i));
+        unit_vectors.col(i) = Eigen::Matrix<T, 3, 1>{convert_x_field_data(pointcloud, i),
+                convert_y_field_data(pointcloud, i), convert_z_field_data(pointcloud, i)}
+                                      .normalized();
     }
     return unit_vectors;
 }

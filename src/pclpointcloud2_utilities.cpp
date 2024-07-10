@@ -4,7 +4,7 @@
 #include <pcl/common/io.h>
 #include <pcl_conversions/pcl_conversions.h>
 
-#include <eigen_ext/geometry.hpp>
+#include <convert/convert.hpp>
 #include <sstream>
 
 namespace pct {
@@ -48,8 +48,9 @@ pcl::PCLPointCloud2 add_unit_vectors(const pcl::PCLPointCloud2& src) {
     auto set_uz_field_data = create_set_field_data_function<float, float>(get_field(dest, "uz"));
     const std::size_t num_points = size_points(dest);
     for (std::size_t i = 0; i < num_points; ++i) {
-        const Eigen::Vector3f unit_vector = eigen_ext::safe_normalise(get_x_field_data(dest, i),
-                get_y_field_data(dest, i), get_z_field_data(dest, i));
+        const Eigen::Vector3f unit_vector = Eigen::Matrix<float, 3, 1>{get_x_field_data(dest, i),
+                get_y_field_data(dest, i), get_z_field_data(dest, i)}
+                                                    .normalized();
         set_ux_field_data(dest, i, unit_vector[0]);
         set_uy_field_data(dest, i, unit_vector[1]);
         set_uz_field_data(dest, i, unit_vector[2]);
@@ -136,7 +137,9 @@ void deskew(const Eigen::Isometry3d& skew, const double dt, const std::uint64_t 
                 Eigen::Quaterniond::Identity().slerp(new_time_fraction, skew_quaternion);
         // new_time_transform = T_N^S where N denotes new
         const Eigen::Isometry3d new_time_transform =
-                eigen_ext::to_transform(new_time_translation, new_time_quaternion).inverse();
+                convert::to<Eigen::Isometry3d, Eigen::Vector3d, Eigen::Quaterniond>(new_time_translation,
+                        new_time_quaternion)
+                        .inverse();
 
         // Access functions
         auto x_field = get_field(dest, "x");
@@ -164,7 +167,9 @@ void deskew(const Eigen::Isometry3d& skew, const double dt, const std::uint64_t 
             const Eigen::Quaterniond interp_quaternion =
                     Eigen::Quaterniond::Identity().slerp(interp_fraction, skew_quaternion);
             // interp_transform = T_S^i where i is the frame where point i was taken
-            const Eigen::Isometry3d interp_transform = eigen_ext::to_transform(interp_translation, interp_quaternion);
+            const Eigen::Isometry3d interp_transform =
+                    convert::to<Eigen::Isometry3d, Eigen::Vector3d, Eigen::Quaterniond>(interp_translation,
+                            interp_quaternion);
             // p_N = T_N^S * T_S^i * p_i
             const Eigen::Vector3d p_deskew = new_time_transform * interp_transform * p;
 

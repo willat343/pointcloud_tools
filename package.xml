@@ -15,12 +15,13 @@
     <depend>sensor_msgs</depend>
     <depend>tf2_ros</depend>
 
-    <depend>eigen_ext</depend>
     <depend>statistics_msgs</depend>
 
     <depend>EIGEN3</depend>
     <depend>PCL</depend>
+    
     <depend>convert</depend>
+    <depend>mathbox</depend>
 
     <build_depend>message_generation</build_depend>
     <exec_depend>message_runtime</exec_depend>

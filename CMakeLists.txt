@@ -15,12 +15,12 @@ find_package(catkin REQUIRED COMPONENTS
     sensor_msgs
     tf2_ros
 
-    eigen_ext
     statistics_msgs
 )
 find_package(Eigen3 REQUIRED)
 find_package(PCL REQUIRED)
 find_package(convert REQUIRED)
+find_package(mathbox REQUIRED)
 
 add_service_files(
     DIRECTORY srv
@@ -47,13 +47,13 @@ catkin_package(
         sensor_msgs
         tf2_ros
 
-        eigen_ext
         statistics_msgs
     LIBRARIES ${LIBRARY}
     DEPENDS
         EIGEN3
         PCL
         convert
+        mathbox
 )
 
 set(SYSTEM_INCLUDE_DIRS
@@ -69,14 +69,10 @@ set(INCLUDE_DIRS
 
 set(SYSTEM_LIBRARIES
     ${catkin_LIBRARIES}
-    ${EIGEN3_LIBRARIES}
+    Eigen3::Eigen
     ${PCL_LIBRARIES}
-)
-
-set(SYSTEM_LIBRARIES
-    ${catkin_LIBRARIES}
-    ${EIGEN3_LIBRARIES}
-    ${PCL_LIBRARIES}
+    ${convert_LIBRARIES}
+    mathbox
 )
 
 # Library
@@ -97,9 +93,7 @@ target_link_libraries(${LIBRARY}
     ${SYSTEM_LIBRARIES}
 )
 target_compile_definitions(${LIBRARY} PUBLIC
-    ${DEFINITIONS}
-)
-target_compile_definitions(${LIBRARY} PUBLIC
+    ${convert_DEFINITIONS}
     PCL_NO_PRECOMPILE
 )
 set_target_properties(${LIBRARY}
@@ -174,7 +168,6 @@ target_include_directories(compute_distances PUBLIC
 target_link_libraries(compute_distances
     ${SYSTEM_LIBRARIES}
     ${LIBRARY}
-    ${convert_LIBRARIES}
 )
 target_compile_definitions(${LIBRARY} PUBLIC
     ${convert_DEFINITIONS}

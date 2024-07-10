@@ -1,7 +1,7 @@
 #ifndef POINTCLOUD_TOOLS_IMPL_PCLPOINTCLOUD_TRANSFORM_HPP
 #define POINTCLOUD_TOOLS_IMPL_PCLPOINTCLOUD_TRANSFORM_HPP
 
-#include <eigen_ext/geometry.hpp>
+#include <mathbox/geometry.hpp>
 #include <pcl/common/transforms.h>
 
 #include "pointcloud_tools/pclpointcloud_transform.hpp"
@@ -118,7 +118,7 @@ void transform_pointcloud_with_normals_and_covariances(const pcl::PointCloud<Poi
             tf.se3(cloud_in[i].data, cloud_out[i].data);
             tf.so3(cloud_in[i].data_n, cloud_out[i].data_n);
             const Eigen::Matrix3f rotation = transform.template block<3, 3>(0, 0);
-            cloud_out[i].setCovariance(eigen_ext::rotate_point_covariance(cloud_in[i].getCovarianceMatrix(), rotation));
+            cloud_out[i].setCovariance(math::rotate_point_covariance(cloud_in[i].getCovarianceMatrix(), rotation));
         }
     }
     // Dataset might contain NaNs and Infs, so check for them first.
@@ -130,7 +130,7 @@ void transform_pointcloud_with_normals_and_covariances(const pcl::PointCloud<Poi
             tf.se3(cloud_in[i].data, cloud_out[i].data);
             tf.so3(cloud_in[i].data_n, cloud_out[i].data_n);
             const Eigen::Matrix3f rotation = transform.template block<3, 3>(0, 0);
-            cloud_out[i].setCovariance(eigen_ext::rotate_point_covariance(cloud_in[i].getCovarianceMatrix(), rotation));
+            cloud_out[i].setCovariance(math::rotate_point_covariance(cloud_in[i].getCovarianceMatrix(), rotation));
         }
     }
 }
