@@ -28,6 +28,15 @@ namespace pct {
 pcl::PCLPointCloud2 add_field(const pcl::PCLPointCloud2& src, const std::string& name,
         const pcl::PCLPointField::PointFieldTypes datatype, const std::uint32_t count = 1);
 
+/**
+ * @brief Create a new pointcloud with additional fields appended.
+ *
+ * @param src
+ * @param names
+ * @param datatype
+ * @param count
+ * @return pcl::PCLPointCloud2
+ */
 pcl::PCLPointCloud2 add_fields(const pcl::PCLPointCloud2& src, const std::vector<std::string>& names,
         const pcl::PCLPointField::PointFieldTypes datatype, const std::uint32_t count = 1);
 
@@ -56,6 +65,13 @@ void cast_field(pcl::PCLPointCloud2& pointcloud, const std::string& name);
 template<std::uint8_t type>
 void cast_field_with_scale(pcl::PCLPointCloud2& pointcloud, const std::string& name, const double scale);
 
+/**
+ * @brief Change a point cloud field name.
+ *
+ * @param pointcloud
+ * @param from
+ * @param to
+ */
 void change_field_name(pcl::PCLPointCloud2& pointcloud, const std::string& from, const std::string& to);
 
 /**
@@ -163,18 +179,80 @@ template<typename InT>
 auto create_set_field_data_function(const pcl::PCLPointField& field);
 
 /**
- * @brief Deskew a pointcloud to new_time under the assumption that there has been a constant twist applied over a time
- * dt resulting in a transform from the starting origin frame to the final frame.
+ * @brief Deskew a pointcloud to `new_time` under the assumption that there has been a constant twist applied over a
+ * time `dt` resulting in a transform `skew`. The `src` and `dest` point clouds must have fields [x, y, z]. The
+ * [x, y, z] fields of the `dest` point cloud are modified, but no data is copied from `src`. The header time of `dest`
+ * is set to new_time.
+ *
+ * See also `deskew_offset_constant_twist`, `deskew_spin_constant_twist`.
+ *
+ * @tparam InterpCoeffFunction
+ * @param skew skew transformation over `dt` assuming constant twist
+ * @param new_time skew start time in microseconds
+ * @param new_time new time in microseconds
+ * @param dt duration of skew in seconds
+ * @param interp_coeff_function function to compute interpolation coefficient for the i-th point in form `(*)(const
+ * pcl::PointCloud2& src, const std::size_t i) -> double`
+ * @param src source point cloud
+ * @param dest destination point cloud
+ */
+template<typename InterpCoeffFunction>
+void deskew_constant_twist(const Eigen::Isometry3d& skew, const std::uint64_t skew_start_time,
+        const std::uint64_t new_time, const double dt, const InterpCoeffFunction& interp_coeff_function,
+        const pcl::PCLPointCloud2& src, pcl::PCLPointCloud2& dest);
+
+/**
+ * @brief Deskew a pointcloud under constant twist assumption when the `src` point cloud has a time field containing
+ * absolute times (correct with respect to the header time). Calls `deskew_constant_twist`.
+ *
+ * @param skew
+ * @param new_time
+ * @param dt
+ * @param time_field
+ * @param time_ratio_to_seconds
+ * @param src
+ * @return pcl::PCLPointCloud2
+ */
+pcl::PCLPointCloud2 deskew_absolute_constant_twist(const Eigen::Isometry3d& skew, const std::uint64_t skew_start_time,
+        const std::uint64_t new_time, const double dt, const std::string& time_field,
+        const double time_ratio_to_seconds, const pcl::PCLPointCloud2& src);
+
+/**
+ * @brief Deskew a pointcloud under constant twist assumption when the `src` point cloud has a time field containing
+ * offset times since the header time. Calls `deskew_constant_twist`.
  *
  * @param skew skew transform
  * @param dt time of point cloud sweep
  * @param new_time target time to deskew to
+ * @param time_field name of the time field
+ * @param time_ratio_to_seconds scale time field by this ratio to get seconds
  * @param src skewed point cloud
- * @param dest deskewed point cloud
  */
-void deskew(const Eigen::Isometry3d& skew, const double dt, const std::uint64_t new_time,
-        const pcl::PCLPointCloud2& src, pcl::PCLPointCloud2& dest);
+pcl::PCLPointCloud2 deskew_offset_constant_twist(const Eigen::Isometry3d& skew, const std::uint64_t skew_start_time,
+        const std::uint64_t new_time, const double dt, const std::string& time_field,
+        const double time_ratio_to_seconds, const pcl::PCLPointCloud2& src);
 
+/**
+ * @brief Deskew a pointcloud under constant twist assumption when the `src` point cloud has come from one complete
+ * rotation of a spinning LiDAR. Calls `deskew_constant_twist`.
+ *
+ * @param skew
+ * @param new_time
+ * @param dt
+ * @param spin_cw_from_top
+ * @param src
+ * @return pcl::PCLPointCloud2
+ */
+pcl::PCLPointCloud2 deskew_spin_constant_twist(const Eigen::Isometry3d& skew, const std::uint64_t skew_start_time,
+        const std::uint64_t new_time, const double dt, const bool spin_cw_from_top, const pcl::PCLPointCloud2& src);
+
+/**
+ * @brief Check if a point cloud has no points.
+ *
+ * @param pointcloud
+ * @return true
+ * @return false
+ */
 bool empty(const pcl::PCLPointCloud2& pointcloud);
 
 /**
@@ -191,8 +269,6 @@ bool empty(const pcl::PCLPointCloud2& pointcloud);
 template<typename OutT>
 OutT field_data(const pcl::PCLPointCloud2& pointcloud, const pcl::PCLPointField& field, const std::size_t i);
 
-std::string field_string(const pcl::PCLPointField& field);
-
 std::string field_type_to_string(const std::uint8_t field_type);
 
 template<typename T>
@@ -207,11 +283,6 @@ const pcl::PCLPointField& get_field(const pcl::PCLPointCloud2& pointcloud, const
 pcl::PCLPointField& get_field(pcl::PCLPointCloud2& pointcloud, const std::string& name);
 
 bool has_field(const pcl::PCLPointCloud2& pointcloud, const std::string& name);
-
-std::string info_string(const pcl::PCLPointCloud2& pointcloud);
-
-std::string info_string(const pcl::PCLPointCloud2& pointcloud,
-        const std::vector<statistics_msgs::SummaryStatistics>& statistics);
 
 template<int>
 struct is_8bit_type {};
@@ -265,6 +336,10 @@ std::string min_str(const pcl::PCLPointCloud2& pointcloud, const pcl::PCLPointFi
 
 std::uint32_t point_step(const pcl::PCLPointField& last_field);
 
+pcl::PCLPointCloud2 remove_field(const pcl::PCLPointCloud2& src, const std::string& name);
+
+pcl::PCLPointCloud2 remove_fields(const pcl::PCLPointCloud2& src, const std::vector<std::string>& names);
+
 void resize(pcl::PCLPointCloud2& pointcloud, const std::uint32_t width, const std::uint32_t height = 1);
 
 std::uint32_t row_step(const pcl::PCLPointCloud2& pointcloud);
@@ -316,6 +391,13 @@ T sum(const pcl::PCLPointCloud2& pointcloud, const pcl::PCLPointField& field);
 
 template<typename T>
 T sum(const pcl::PCLPointCloud2& pointcloud, const std::string& field_name);
+
+std::string summary(const pcl::PCLPointCloud2& pointcloud);
+
+std::string summary(const pcl::PCLPointCloud2& pointcloud,
+        const std::vector<statistics_msgs::SummaryStatistics>& statistics);
+
+std::string to_string(const pcl::PCLPointField& field);
 
 std::string to_string(const pcl::PCLPointField::PointFieldTypes field_type);
 

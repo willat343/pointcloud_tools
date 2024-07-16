@@ -1,6 +1,7 @@
 #ifndef POINTCLOUD_TOOLS_IMPL_PCLPOINTCLOUD2_UTILITIES_HPP
 #define POINTCLOUD_TOOLS_IMPL_PCLPOINTCLOUD2_UTILITIES_HPP
 
+#include <convert/convert.hpp>
 #include <mathbox/nsphere.hpp>
 
 #include "pointcloud_tools/pclpointcloud2_utilities.hpp"
@@ -369,6 +370,62 @@ void cast_field_with_scale(pcl::PCLPointCloud2& pointcloud, const std::string& n
         const std::size_t num_points = size_points(pointcloud);
         for (std::size_t i = 0; i < num_points; ++i) {
             set_field_data(pointcloud, i, get_field_data(pointcloud, i) * scale);
+        }
+    }
+}
+
+template<typename InterpCoeffFunction>
+void deskew_constant_twist(const Eigen::Isometry3d& skew, const std::uint64_t skew_start_time, const std::uint64_t new_time, const double dt,
+        const InterpCoeffFunction& interp_coeff_function, const pcl::PCLPointCloud2& src, pcl::PCLPointCloud2& dest) {
+    // Set new timestamp
+    dest.header.stamp = new_time;
+    // Skip processing if identity transform.
+    if (!skew.isApprox(Eigen::Isometry3d::Identity())) {
+        // Setup. Skew is T_S^E where S denotes start and E denotes end
+        const Eigen::Vector3d skew_translation = skew.translation();
+        const Eigen::Quaterniond skew_quaternion = Eigen::Quaterniond(skew.rotation());
+
+        // Compute required quantities
+        const double new_time_seconds = static_cast<double>(new_time - skew_start_time) / 1.0e6;  // us to s
+        const double new_time_fraction = new_time_seconds / dt;
+        const Eigen::Vector3d new_time_translation = new_time_fraction * skew_translation;
+        const Eigen::Quaterniond new_time_quaternion =
+                Eigen::Quaterniond::Identity().slerp(new_time_fraction, skew_quaternion);
+        // new_time_transform = T_N^S where N denotes new
+        const Eigen::Isometry3d new_time_transform =
+                convert::to<Eigen::Isometry3d, Eigen::Vector3d, Eigen::Quaterniond>(new_time_translation,
+                        new_time_quaternion)
+                        .inverse();
+
+        // Access functions
+        auto get_x_field_data = create_get_field_data_function<double>(get_field(src, "x"));
+        auto get_y_field_data = create_get_field_data_function<double>(get_field(src, "y"));
+        auto get_z_field_data = create_get_field_data_function<double>(get_field(src, "z"));
+        auto set_x_field_data = create_set_field_data_function<double>(get_field(dest, "x"));
+        auto set_y_field_data = create_set_field_data_function<double>(get_field(dest, "y"));
+        auto set_z_field_data = create_set_field_data_function<double>(get_field(dest, "z"));
+
+        const std::size_t num_points = size_points(src);
+        for (std::size_t i = 0; i < num_points; ++i) {
+            // Get relevant data from pointcloud
+            const Eigen::Vector3d p{get_x_field_data(src, i), get_y_field_data(src, i), get_z_field_data(src, i)};
+
+            // Compute the deskewed point
+            const double interp_fraction = interp_coeff_function(src, i);
+            const Eigen::Vector3d interp_translation = interp_fraction * skew_translation;
+            const Eigen::Quaterniond interp_quaternion =
+                    Eigen::Quaterniond::Identity().slerp(interp_fraction, skew_quaternion);
+            // interp_transform = T_S^i where i is the frame where point i was taken
+            const Eigen::Isometry3d interp_transform =
+                    convert::to<Eigen::Isometry3d, Eigen::Vector3d, Eigen::Quaterniond>(interp_translation,
+                            interp_quaternion);
+            // p_N = T_N^S * T_S^i * p_i, where i is the frame for the time of point i
+            const Eigen::Vector3d p_deskew = new_time_transform * interp_transform * p;
+
+            // Set the relevant data in the pointcloud
+            set_x_field_data(dest, i, p_deskew[0]);
+            set_y_field_data(dest, i, p_deskew[1]);
+            set_z_field_data(dest, i, p_deskew[2]);
         }
     }
 }

@@ -20,7 +20,7 @@ void PointcloudAnalyser::analyse(const sensor_msgs::PointCloud2::ConstPtr& msg) 
 
     // Print information with statistics
     statistics_msgs::SummaryStatisticsArray statistics_array = statistics(*pointcloud);
-    ROS_INFO_STREAM(info_string(*pointcloud, statistics_array.statistics));
+    ROS_INFO_STREAM(summary(*pointcloud, statistics_array.statistics));
 
     // Publish statistics
     statistics_array_publisher.publish(statistics_array);

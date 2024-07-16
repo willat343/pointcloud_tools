@@ -58,6 +58,10 @@ pcl::PCLPointCloud2 add_unit_vectors(const pcl::PCLPointCloud2& src) {
     return dest;
 }
 
+void change_field_name(pcl::PCLPointCloud2& pointcloud, const std::string& from, const std::string& to) {
+    get_field(pointcloud, from).name = to;
+}
+
 int check_normals(const pcl::PCLPointCloud2& pointcloud, const float threshold) {
     auto get_normal_x_field_data = create_get_field_data_function<float>(get_field(pointcloud, "normal_x"));
     auto get_normal_y_field_data = create_get_field_data_function<float>(get_field(pointcloud, "normal_y"));
@@ -114,83 +118,78 @@ auto create_set_field_data_function<std::uint8_t, std::uint8_t>(const pcl::PCLPo
     };
 }
 
-void deskew(const Eigen::Isometry3d& skew, const double dt, const std::uint64_t new_time,
-        const pcl::PCLPointCloud2& src, pcl::PCLPointCloud2& dest) {
-    // Skip processing if identity transform.
-    dest = src;
-    dest.header.stamp = new_time;
-    if (!skew.isApprox(Eigen::Isometry3d::Identity())) {
-        // Error handling
-        if (dt <= 0.0) {
-            throw std::runtime_error("dt cannot be <= 0.0 for deskewing");
-        }
-
-        // Setup. Skew is T_S^E where S denotes start and E denotes end
-        const Eigen::Vector3d skew_translation = skew.translation();
-        const Eigen::Quaterniond skew_quaternion = Eigen::Quaterniond(skew.rotation());
-
-        // Compute required quantities
-        const double new_time_seconds = static_cast<double>(new_time - src.header.stamp) / 1.0e6;  // us to s
-        const double new_time_fraction = new_time_seconds / dt;
-        const Eigen::Vector3d new_time_translation = new_time_fraction * skew_translation;
-        const Eigen::Quaterniond new_time_quaternion =
-                Eigen::Quaterniond::Identity().slerp(new_time_fraction, skew_quaternion);
-        // new_time_transform = T_N^S where N denotes new
-        const Eigen::Isometry3d new_time_transform =
-                convert::to<Eigen::Isometry3d, Eigen::Vector3d, Eigen::Quaterniond>(new_time_translation,
-                        new_time_quaternion)
-                        .inverse();
-
-        // Access functions
-        auto x_field = get_field(dest, "x");
-        auto y_field = get_field(dest, "y");
-        auto z_field = get_field(dest, "z");
-        auto t_field = get_field(dest, "t");
-        auto get_x_field_data = create_get_field_data_function<double>(x_field);
-        auto get_y_field_data = create_get_field_data_function<double>(y_field);
-        auto get_z_field_data = create_get_field_data_function<double>(z_field);
-        auto get_t_field_data = create_get_field_data_function<double>(t_field);
-        auto set_x_field_data = create_set_field_data_function<double>(x_field);
-        auto set_y_field_data = create_set_field_data_function<double>(y_field);
-        auto set_z_field_data = create_set_field_data_function<double>(z_field);
-        auto set_t_field_data = create_set_field_data_function<float>(t_field);
-
-        const std::size_t num_points = size_points(dest);
-        for (std::size_t i = 0; i < num_points; ++i) {
-            // Get relevant data from pointcloud
-            const Eigen::Vector3d p{get_x_field_data(dest, i), get_y_field_data(dest, i), get_z_field_data(dest, i)};
-            const double t = get_t_field_data(dest, i);
-
-            // Compute the deskewed point
-            const double interp_fraction = t / dt;
-            const Eigen::Vector3d interp_translation = interp_fraction * skew_translation;
-            const Eigen::Quaterniond interp_quaternion =
-                    Eigen::Quaterniond::Identity().slerp(interp_fraction, skew_quaternion);
-            // interp_transform = T_S^i where i is the frame where point i was taken
-            const Eigen::Isometry3d interp_transform =
-                    convert::to<Eigen::Isometry3d, Eigen::Vector3d, Eigen::Quaterniond>(interp_translation,
-                            interp_quaternion);
-            // p_N = T_N^S * T_S^i * p_i
-            const Eigen::Vector3d p_deskew = new_time_transform * interp_transform * p;
-
-            // Set the relevant data in the pointcloud
-            set_x_field_data(dest, i, p_deskew[0]);
-            set_y_field_data(dest, i, p_deskew[1]);
-            set_z_field_data(dest, i, p_deskew[2]);
-            set_t_field_data(dest, i, 0.0f);
-        }
+pcl::PCLPointCloud2 deskew_absolute_constant_twist(const Eigen::Isometry3d& skew, const std::uint64_t skew_start_time,
+        const std::uint64_t new_time, const double dt, const std::string& time_field,
+        const double time_ratio_to_seconds, const pcl::PCLPointCloud2& src) {
+    // Error handling
+    if (dt <= 0.0) {
+        throw std::runtime_error("dt cannot be <= 0.0 for deskewing");
     }
+
+    // Create interp coefficient function for time field as an offset
+    auto get_t_field_data = create_get_field_data_function<double>(get_field(src, time_field));
+    const double skew_start_time_s = 1.0e-6 * static_cast<double>(skew_start_time);
+    auto interp_coeff_function = [get_t_field_data, dt, time_ratio_to_seconds, skew_start_time_s](
+                                         const pcl::PCLPointCloud2& src, const std::size_t i) -> double {
+        return (time_ratio_to_seconds * get_t_field_data(src, i) - skew_start_time_s) / dt;
+    };
+
+    // Create deskewed point cloud without the time field.
+    pcl::PCLPointCloud2 dest = remove_field(src, time_field);
+    deskew_constant_twist(skew, skew_start_time, new_time, dt, interp_coeff_function, src, dest);
+    return dest;
 }
 
-void change_field_name(pcl::PCLPointCloud2& pointcloud, const std::string& from, const std::string& to) {
-    get_field(pointcloud, from).name = to;
+pcl::PCLPointCloud2 deskew_offset_constant_twist(const Eigen::Isometry3d& skew, const std::uint64_t skew_start_time,
+        const std::uint64_t new_time, const double dt, const std::string& time_field,
+        const double time_ratio_to_seconds, const pcl::PCLPointCloud2& src) {
+    // Error handling
+    if (dt <= 0.0) {
+        throw std::runtime_error("dt cannot be <= 0.0 for deskewing");
+    }
+
+    // Create interp coefficient function for time field as an offset
+    auto get_t_field_data = create_get_field_data_function<double>(get_field(src, time_field));
+    auto interp_coeff_function = [get_t_field_data, dt, time_ratio_to_seconds](const pcl::PCLPointCloud2& src,
+                                         const std::size_t i) -> double {
+        return time_ratio_to_seconds * get_t_field_data(src, i) / dt;
+    };
+
+    // Create deskewed point cloud without the time field.
+    pcl::PCLPointCloud2 dest = remove_field(src, time_field);
+    deskew_constant_twist(skew, skew_start_time, new_time, dt, interp_coeff_function, src, dest);
+    return dest;
+}
+
+pcl::PCLPointCloud2 deskew_spin_constant_twist(const Eigen::Isometry3d& skew, const std::uint64_t skew_start_time,
+        const std::uint64_t new_time, const double dt, const bool spin_cw_from_top, const pcl::PCLPointCloud2& src) {
+    // There may be some small overhead in the lambda calls and double access of x,y fields.
+    auto get_x_field_data = create_get_field_data_function<double>(get_field(src, "x"));
+    auto get_y_field_data = create_get_field_data_function<double>(get_field(src, "y"));
+    const double flip = spin_cw_from_top ? -1.0 : 1.0;
+    auto interp_coeff_function = [get_x_field_data, get_y_field_data, flip](const pcl::PCLPointCloud2& src,
+                                         const std::size_t i) -> double {
+        // atan2 -> [-pi, pi]. Take negative angle for CW spin.
+        double angle = flip * std::atan2(get_y_field_data(src, i), get_x_field_data(src, i));
+        // wrap to [0, 2pi]
+        if (angle < 0.0) {
+            angle += 2.0 * M_PI;
+        }
+        // map to [0, 1]
+        return angle / (2.0 * M_PI);
+    };
+
+    // Create deskew point cloud with all fields
+    pcl::PCLPointCloud2 dest = src;
+    deskew_constant_twist(skew, skew_start_time, new_time, dt, interp_coeff_function, src, dest);
+    return dest;
 }
 
 bool empty(const pcl::PCLPointCloud2& pointcloud) {
     return size_points(pointcloud) == 0;
 }
 
-std::string field_string(const pcl::PCLPointField& field) {
+std::string to_string(const pcl::PCLPointField& field) {
     std::stringstream ss;
     ss << "name: " << field.name << ", offset: " << field.offset
        << ", datatype: " << field_type_to_string(field.datatype) << ", count: " << field.count;
@@ -226,31 +225,6 @@ bool has_field(const pcl::PCLPointCloud2& pointcloud, const std::string& name) {
         }
     }
     return false;
-}
-
-std::string info_string(const pcl::PCLPointCloud2& pointcloud) {
-    statistics_msgs::SummaryStatisticsArray statistics_ = statistics(pointcloud);
-    return info_string(pointcloud, statistics_.statistics);
-}
-
-std::string info_string(const pcl::PCLPointCloud2& pointcloud,
-        const std::vector<statistics_msgs::SummaryStatistics>& statistics_) {
-    if (pointcloud.fields.size() != statistics_.size()) {
-        throw std::runtime_error("Fields and statistics had different sizes (" +
-                                 std::to_string(pointcloud.fields.size()) + " and " +
-                                 std::to_string(statistics_.size()) + ").");
-    }
-    std::stringstream ss;
-    ss << "Pointcloud (" << pointcloud.header.seq << ", " << pointcloud.header.stamp << ", "
-       << pointcloud.header.frame_id << ")\n\tsize: h = " << pointcloud.height << ", w = " << pointcloud.width;
-    for (std::size_t i = 0; i < pointcloud.fields.size(); ++i) {
-        // Even though its inefficient, recompute max and min strings without the cast to double
-        ss << "\n\t" << field_string(pointcloud.fields[i]) << "\n\t\tmax: " << max_str(pointcloud, pointcloud.fields[i])
-           << ", min: " << min_str(pointcloud, pointcloud.fields[i])
-           << ", mean: " << std::to_string(statistics_[i].mean)
-           << ", variance: " << std::to_string(statistics_[i].variance);
-    }
-    return ss.str();
 }
 
 bool is_8bit(const pcl::PCLPointField::PointFieldTypes type) {
@@ -387,6 +361,42 @@ std::uint32_t point_step(const pcl::PCLPointField& last_field) {
     return last_field.offset + pcl::getFieldSize(last_field.datatype) * last_field.count;
 }
 
+pcl::PCLPointCloud2 remove_field(const pcl::PCLPointCloud2& src, const std::string& name) {
+    return remove_fields(src, {name});
+}
+
+pcl::PCLPointCloud2 remove_fields(const pcl::PCLPointCloud2& src, const std::vector<std::string>& names) {
+    pcl::PCLPointCloud2 dest;
+    dest.header = src.header;
+    dest.height = src.height;
+    dest.width = src.width;
+    std::vector<pcl::PCLPointField> retained_src_fields;
+    for (const auto& field : src.fields) {
+        if (std::find(names.cbegin(), names.cend(), field.name) == names.cend()) {
+            retained_src_fields.emplace_back(field);
+            dest.fields.emplace_back(pcl::PCLPointField{.name = field.name,
+                    .offset = dest.fields.empty() ? 0 : point_step(dest.fields.back()),
+                    .datatype = field.datatype,
+                    .count = field.count});
+        }
+    }
+    dest.is_bigendian = src.is_bigendian;
+    dest.point_step = point_step(dest.fields.back());
+    dest.row_step = row_step(dest);
+    dest.data.resize(size_bytes(dest));
+    dest.is_dense = src.is_dense;
+    // Copy data field by field
+    for (std::size_t f = 0; f < dest.fields.size(); ++f) {
+        const pcl::PCLPointField& src_field = retained_src_fields[f];
+        const pcl::PCLPointField& dest_field = dest.fields[f];
+        const std::size_t field_bytes = pcl::getFieldSize(dest_field.datatype) * dest_field.count;
+        for (std::size_t i = 0, j = 0; i < dest.data.size(); i += dest.point_step, j += src.point_step) {
+            std::memcpy(&dest.data[i + dest_field.offset], &src.data[j + src_field.offset], field_bytes);
+        }
+    }
+    return dest;
+}
+
 void resize(pcl::PCLPointCloud2& pointcloud, const std::uint32_t width, const std::uint32_t height) {
     pointcloud.height = height;
     pointcloud.width = width;
@@ -438,6 +448,31 @@ statistics_msgs::SummaryStatisticsArray statistics(const pcl::PCLPointCloud2& po
         statistics_array.statistics.emplace_back(statistics(pointcloud, field));
     }
     return statistics_array;
+}
+
+std::string summary(const pcl::PCLPointCloud2& pointcloud) {
+    statistics_msgs::SummaryStatisticsArray statistics_ = statistics(pointcloud);
+    return summary(pointcloud, statistics_.statistics);
+}
+
+std::string summary(const pcl::PCLPointCloud2& pointcloud,
+        const std::vector<statistics_msgs::SummaryStatistics>& statistics_) {
+    if (pointcloud.fields.size() != statistics_.size()) {
+        throw std::runtime_error("Fields and statistics had different sizes (" +
+                                 std::to_string(pointcloud.fields.size()) + " and " +
+                                 std::to_string(statistics_.size()) + ").");
+    }
+    std::stringstream ss;
+    ss << "Pointcloud (" << pointcloud.header.seq << ", " << pointcloud.header.stamp << ", "
+       << pointcloud.header.frame_id << ")\n\tsize: h = " << pointcloud.height << ", w = " << pointcloud.width;
+    for (std::size_t i = 0; i < pointcloud.fields.size(); ++i) {
+        // Even though its inefficient, recompute max and min strings without the cast to double
+        ss << "\n\t" << to_string(pointcloud.fields[i]) << "\n\t\tmax: " << max_str(pointcloud, pointcloud.fields[i])
+           << ", min: " << min_str(pointcloud, pointcloud.fields[i])
+           << ", mean: " << std::to_string(statistics_[i].mean)
+           << ", variance: " << std::to_string(statistics_[i].variance);
+    }
+    return ss.str();
 }
 
 std::string to_string(const pcl::PCLPointField::PointFieldTypes field_type) {
