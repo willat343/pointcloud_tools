@@ -4,7 +4,6 @@
 #include <pcl/common/io.h>
 #include <pcl_conversions/pcl_conversions.h>
 
-#include <convert/convert.hpp>
 #include <sstream>
 
 namespace pct {
@@ -134,9 +133,24 @@ pcl::PCLPointCloud2 deskew_absolute_constant_twist(const Eigen::Isometry3d& skew
         return (time_ratio_to_seconds * get_t_field_data(src, i) - skew_start_time_s) / dt;
     };
 
-    // Create deskewed point cloud without the time field.
+    // Create deskew point cloud without time field
     pcl::PCLPointCloud2 dest = remove_field(src, time_field);
     deskew_constant_twist(skew, skew_start_time, new_time, dt, interp_coeff_function, src, dest);
+    return dest;
+}
+
+pcl::PCLPointCloud2 deskew_absolute_constant_twist(const std::vector<std::pair<double, Eigen::Isometry3d>>& poses,
+        const std::uint64_t new_time, const std::string& time_field, const double time_ratio_to_seconds,
+        const pcl::PCLPointCloud2& src) {
+    auto get_t_field_data = create_get_field_data_function<double>(get_field(src, time_field));
+    auto get_point_time = [get_t_field_data, time_ratio_to_seconds](const pcl::PCLPointCloud2& src,
+                                  const std::size_t i) -> double {
+        return time_ratio_to_seconds * get_t_field_data(src, i);
+    };
+
+    // Create deskew point cloud without time field
+    pcl::PCLPointCloud2 dest = remove_field(src, time_field);
+    deskew_constant_twist(poses, new_time, get_point_time, src, dest);
     return dest;
 }
 
@@ -155,9 +169,25 @@ pcl::PCLPointCloud2 deskew_offset_constant_twist(const Eigen::Isometry3d& skew, 
         return time_ratio_to_seconds * get_t_field_data(src, i) / dt;
     };
 
-    // Create deskewed point cloud without the time field.
+    // Create deskew point cloud without time field
     pcl::PCLPointCloud2 dest = remove_field(src, time_field);
     deskew_constant_twist(skew, skew_start_time, new_time, dt, interp_coeff_function, src, dest);
+    return dest;
+}
+
+pcl::PCLPointCloud2 deskew_offset_constant_twist(const std::vector<std::pair<double, Eigen::Isometry3d>>& poses,
+        const std::uint64_t new_time, const std::string& time_field, const double time_ratio_to_seconds,
+        const pcl::PCLPointCloud2& src) {
+    auto get_t_field_data = create_get_field_data_function<double>(get_field(src, time_field));
+    const double src_header_s = timestamp_as_seconds(src);
+    auto get_point_time = [get_t_field_data, time_ratio_to_seconds, src_header_s](const pcl::PCLPointCloud2& src,
+                                  const std::size_t i) -> double {
+        return src_header_s + time_ratio_to_seconds * get_t_field_data(src, i);
+    };
+
+    // Create deskew point cloud without time field
+    pcl::PCLPointCloud2 dest = remove_field(src, time_field);
+    deskew_constant_twist(poses, new_time, get_point_time, src, dest);
     return dest;
 }
 
@@ -182,6 +212,34 @@ pcl::PCLPointCloud2 deskew_spin_constant_twist(const Eigen::Isometry3d& skew, co
     // Create deskew point cloud with all fields
     pcl::PCLPointCloud2 dest = src;
     deskew_constant_twist(skew, skew_start_time, new_time, dt, interp_coeff_function, src, dest);
+    return dest;
+}
+
+pcl::PCLPointCloud2 deskew_spin_constant_twist(const std::vector<std::pair<double, Eigen::Isometry3d>>& poses,
+        const std::uint64_t new_time, const double spin_period, const bool spin_cw_from_top,
+        const bool stamped_at_spin_end, const pcl::PCLPointCloud2& src) {
+    // There may be some small overhead in the lambda calls and double access of x,y fields.
+    auto get_x_field_data = create_get_field_data_function<double>(get_field(src, "x"));
+    auto get_y_field_data = create_get_field_data_function<double>(get_field(src, "y"));
+    const double src_start_s = timestamp_as_seconds(src) - (stamped_at_spin_end ? spin_period : 0.0);
+    const double flip = spin_cw_from_top ? -1.0 : 1.0;
+    auto get_point_time = [get_x_field_data, get_y_field_data, src_start_s, spin_period, flip](
+                                  const pcl::PCLPointCloud2& src, const std::size_t i) -> double {
+        // atan2 -> [-pi, pi].
+        double angle = flip * std::atan2(get_y_field_data(src, i), get_x_field_data(src, i));
+        // wrap to [0, 2pi]
+        if (angle < 0.0) {
+            angle += 2.0 * M_PI;
+        }
+        // map to [0, spin_period]
+        const double t_offset = spin_period * angle / (2.0 * M_PI);
+        // add offset to start time
+        return src_start_s + t_offset;
+    };
+
+    // Create deskew point cloud with all fields
+    pcl::PCLPointCloud2 dest = src;
+    deskew_constant_twist(poses, new_time, get_point_time, src, dest);
     return dest;
 }
 
@@ -464,7 +522,8 @@ std::string summary(const pcl::PCLPointCloud2& pointcloud,
     }
     std::stringstream ss;
     ss << "Pointcloud (" << pointcloud.header.seq << ", " << pointcloud.header.stamp << ", "
-       << pointcloud.header.frame_id << ")\n\tsize: h = " << pointcloud.height << ", w = " << pointcloud.width;
+       << pointcloud.header.frame_id << ") @ " << std::fixed << timestamp_as_seconds(pointcloud)
+       << "\n\tsize: h = " << pointcloud.height << ", w = " << pointcloud.width;
     for (std::size_t i = 0; i < pointcloud.fields.size(); ++i) {
         // Even though its inefficient, recompute max and min strings without the cast to double
         ss << "\n\t" << to_string(pointcloud.fields[i]) << "\n\t\tmax: " << max_str(pointcloud, pointcloud.fields[i])
@@ -473,6 +532,11 @@ std::string summary(const pcl::PCLPointCloud2& pointcloud,
            << ", variance: " << std::to_string(statistics_[i].variance);
     }
     return ss.str();
+}
+
+double timestamp_as_seconds(const pcl::PCLPointCloud2& pointcloud) {
+    // Convert from (unsigned) integer microseconds
+    return 1.0e-6 * static_cast<double>(pointcloud.header.stamp);
 }
 
 std::string to_string(const pcl::PCLPointField::PointFieldTypes field_type) {

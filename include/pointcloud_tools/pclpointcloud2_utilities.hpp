@@ -201,6 +201,10 @@ void deskew_constant_twist(const Eigen::Isometry3d& skew, const std::uint64_t sk
         const std::uint64_t new_time, const double dt, const InterpCoeffFunction& interp_coeff_function,
         const pcl::PCLPointCloud2& src, pcl::PCLPointCloud2& dest);
 
+template<typename PointTimeFunction>
+void deskew_constant_twist(const std::vector<std::pair<double, Eigen::Isometry3d>>& poses, const std::uint64_t new_time,
+        const PointTimeFunction& get_point_time, const pcl::PCLPointCloud2& src, pcl::PCLPointCloud2& dest);
+
 /**
  * @brief Deskew a pointcloud under constant twist assumption when the `src` point cloud has a time field containing
  * absolute times (correct with respect to the header time). Calls `deskew_constant_twist`.
@@ -217,6 +221,10 @@ pcl::PCLPointCloud2 deskew_absolute_constant_twist(const Eigen::Isometry3d& skew
         const std::uint64_t new_time, const double dt, const std::string& time_field,
         const double time_ratio_to_seconds, const pcl::PCLPointCloud2& src);
 
+pcl::PCLPointCloud2 deskew_absolute_constant_twist(const std::vector<std::pair<double, Eigen::Isometry3d>>& poses,
+        const std::uint64_t new_time, const std::string& time_field, const double time_ratio_to_seconds,
+        const pcl::PCLPointCloud2& src);
+
 /**
  * @brief Deskew a pointcloud under constant twist assumption when the `src` point cloud has a time field containing
  * offset times since the header time. Calls `deskew_constant_twist`.
@@ -232,6 +240,10 @@ pcl::PCLPointCloud2 deskew_offset_constant_twist(const Eigen::Isometry3d& skew, 
         const std::uint64_t new_time, const double dt, const std::string& time_field,
         const double time_ratio_to_seconds, const pcl::PCLPointCloud2& src);
 
+pcl::PCLPointCloud2 deskew_offset_constant_twist(const std::vector<std::pair<double, Eigen::Isometry3d>>& poses,
+        const std::uint64_t new_time, const std::string& time_field, const double time_ratio_to_seconds,
+        const pcl::PCLPointCloud2& src);
+
 /**
  * @brief Deskew a pointcloud under constant twist assumption when the `src` point cloud has come from one complete
  * rotation of a spinning LiDAR. Calls `deskew_constant_twist`.
@@ -245,6 +257,10 @@ pcl::PCLPointCloud2 deskew_offset_constant_twist(const Eigen::Isometry3d& skew, 
  */
 pcl::PCLPointCloud2 deskew_spin_constant_twist(const Eigen::Isometry3d& skew, const std::uint64_t skew_start_time,
         const std::uint64_t new_time, const double dt, const bool spin_cw_from_top, const pcl::PCLPointCloud2& src);
+
+pcl::PCLPointCloud2 deskew_spin_constant_twist(const std::vector<std::pair<double, Eigen::Isometry3d>>& poses,
+        const std::uint64_t new_time, const double spin_period, const bool spin_cw_from_top,
+        const bool stamped_at_spin_end, const pcl::PCLPointCloud2& src);
 
 /**
  * @brief Check if a point cloud has no points.
@@ -396,6 +412,8 @@ std::string summary(const pcl::PCLPointCloud2& pointcloud);
 
 std::string summary(const pcl::PCLPointCloud2& pointcloud,
         const std::vector<statistics_msgs::SummaryStatistics>& statistics);
+
+double timestamp_as_seconds(const pcl::PCLPointCloud2& pointcloud);
 
 std::string to_string(const pcl::PCLPointField& field);
 

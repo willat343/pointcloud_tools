@@ -2,6 +2,7 @@
 #define POINTCLOUD_TOOLS_IMPL_PCLPOINTCLOUD2_UTILITIES_HPP
 
 #include <convert/convert.hpp>
+#include <mathbox/geometry.hpp>
 #include <mathbox/nsphere.hpp>
 
 #include "pointcloud_tools/pclpointcloud2_utilities.hpp"
@@ -375,8 +376,9 @@ void cast_field_with_scale(pcl::PCLPointCloud2& pointcloud, const std::string& n
 }
 
 template<typename InterpCoeffFunction>
-void deskew_constant_twist(const Eigen::Isometry3d& skew, const std::uint64_t skew_start_time, const std::uint64_t new_time, const double dt,
-        const InterpCoeffFunction& interp_coeff_function, const pcl::PCLPointCloud2& src, pcl::PCLPointCloud2& dest) {
+void deskew_constant_twist(const Eigen::Isometry3d& skew, const std::uint64_t skew_start_time,
+        const std::uint64_t new_time, const double dt, const InterpCoeffFunction& interp_coeff_function,
+        const pcl::PCLPointCloud2& src, pcl::PCLPointCloud2& dest) {
     // Set new timestamp
     dest.header.stamp = new_time;
     // Skip processing if identity transform.
@@ -427,6 +429,83 @@ void deskew_constant_twist(const Eigen::Isometry3d& skew, const std::uint64_t sk
             set_y_field_data(dest, i, p_deskew[1]);
             set_z_field_data(dest, i, p_deskew[2]);
         }
+    }
+}
+
+template<typename PointTimeFunction>
+void deskew_constant_twist(const std::vector<std::pair<double, Eigen::Isometry3d>>& poses, const std::uint64_t new_time,
+        const PointTimeFunction& get_point_time, const pcl::PCLPointCloud2& src, pcl::PCLPointCloud2& dest) {
+    const std::size_t num_poses = poses.size();
+    const double new_time_s = 1.0e-6 * static_cast<double>(new_time);
+
+    // Catch errors
+    if (num_poses < 2) {
+        throw std::runtime_error("deskew failed: must be >= 2 poses");
+    } else if (new_time_s < poses.front().first) {
+        throw std::runtime_error("deskew failed: new time must be >= first pose time");
+    } else if (new_time_s > poses.back().first) {
+        throw std::runtime_error("deskew failed: new time must be <= last pose time");
+    }
+
+    // Set dest point cloud header time
+    dest.header.stamp = new_time;
+
+    // Precompute pose time deltas
+    std::vector<double> pose_dts(num_poses - 1);
+    for (std::size_t p = 0; p < num_poses - 1; ++p) {
+        pose_dts[p] = poses[p + 1].first - poses[p].first;
+    }
+
+    // Compute once T_N^W where N refers to the new frame, at time t_N in [t_n, t_{n+1}].
+    Eigen::Isometry3d T_N_W;
+    std::size_t n = 0;
+    while (n < num_poses - 1 && poses[n + 1].first <= new_time_s) {
+        ++n;
+    }
+    // T_N^W = (T_W^N)^{-1} = glerp(T_W^{P_n}, T_W^{P_{n+1}}, (t_N - t_n)/(t_{n+1} - t_n))^{-1}
+    T_N_W = math::glerp(poses[n].second, poses[n + 1].second,
+            static_cast<double>(new_time_s - poses[n].first) / pose_dts[n])
+                    .inverse();
+
+    // Access functions
+    auto get_x_field_data = create_get_field_data_function<double>(get_field(src, "x"));
+    auto get_y_field_data = create_get_field_data_function<double>(get_field(src, "y"));
+    auto get_z_field_data = create_get_field_data_function<double>(get_field(src, "z"));
+    auto set_x_field_data = create_set_field_data_function<double>(get_field(dest, "x"));
+    auto set_y_field_data = create_set_field_data_function<double>(get_field(dest, "y"));
+    auto set_z_field_data = create_set_field_data_function<double>(get_field(dest, "z"));
+
+    std::size_t p = 0;
+    const std::size_t num_points = size_points(src);
+    for (std::size_t i = 0; i < num_points; ++i) {
+        // Get point p_i
+        const Eigen::Vector3d p_i{get_x_field_data(src, i), get_y_field_data(src, i), get_z_field_data(src, i)};
+
+        // Get point time
+        const double t_i = get_point_time(src, i);
+
+        // Get pose index for this time
+        while (p < num_poses - 1 && poses[p + 1].first <= t_i) {
+            ++p;
+        }
+        while (p > 0 && poses[p].first > t_i) {
+            --p;
+        }
+
+        // Compute T_W^i = glerp(T_W^p, T_W^{p+1}, (t_i - t_p) / (t_{p+1} - t_p))
+        const Eigen::Isometry3d T_W_i =
+                math::glerp(poses[p].second, poses[p + 1].second, (t_i - poses[p].first) / pose_dts[p]);
+        if ((t_i - poses[p].first) / pose_dts[p] < 0 || (t_i - poses[p].first) / pose_dts[p] > 1) {
+            std::cerr << "weird interp value = " << (t_i - poses[p].first) / pose_dts[p] << std::endl;
+        }
+
+        // Deskew point
+        const Eigen::Vector3d p_deskew = T_N_W * T_W_i * p_i;
+
+        // Set the data in the dest point cloud
+        set_x_field_data(dest, i, p_deskew[0]);
+        set_y_field_data(dest, i, p_deskew[1]);
+        set_z_field_data(dest, i, p_deskew[2]);
     }
 }
 
