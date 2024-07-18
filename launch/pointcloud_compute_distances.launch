@@ -7,8 +7,8 @@
         <remap from="~input_source"     to="$(arg input_source)"/>
         <remap from="~input_target"     to="$(arg input_target)"/>
         <remap from="~output"           to="$(arg output)"/>
-        <param name="distance_method"   value="POINT_TO_POINT"/>
-        <param name="source_point_type" value="PointXYZ"/>
-        <param name="target_point_type" value="PointXYZ"/>
+        <param name="distance_method"   type="string" value="POINT_TO_POINT"/>
+        <param name="source_point_type" type="string" value="PointXYZ"/>
+        <param name="target_point_type" type="string" value="PointXYZ"/>
     </node>
 </launch>

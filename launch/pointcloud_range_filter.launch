@@ -7,7 +7,7 @@
     <node pkg="pointcloud_tools" type="pointcloud_range_filter" name="range_filter" output="screen">
         <remap from="~input"    to="$(arg input)"/>
         <remap from="~output"   to="$(arg input)/filtered"/>
-        <param name="min_range" value="$(arg min_range)"/>
-        <param name="max_range" value="$(arg max_range)"/>
+        <param name="min_range" type="double" value="$(arg min_range)"/>
+        <param name="max_range" type="double" value="$(arg max_range)"/>
     </node>
 </launch>
