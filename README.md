@@ -5,11 +5,11 @@ Library and ROS nodes for manipulating and analysing pointclouds.
 ## Prerequisites
 
 * Eigen3
-* PCL
+* PCL (`apt` install, comes default with `ros-noetic-desktop-full`)
 * [convert](https://github.com/willat343/convert/tree/main)
 * [mathbox](https://github.com/willat343/mathbox)
-* pcl_conversions (`apt` install)
-* pcl_ros (`apt` install)
+* pcl_conversions (`apt` install, comes default with `ros-noetic-desktop-full`)
+* pcl_ros (`apt` install, comes default with `ros-noetic-desktop-full`)
 * [statistics_msgs](https://github.com/willat343/statistics_msgs) (in catkin workspace)
 
 ## pointcloud_tools_ros
