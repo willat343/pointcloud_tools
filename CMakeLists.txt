@@ -53,7 +53,6 @@ catkin_package(
         EIGEN3
         PCL
         convert
-        mathbox
 )
 
 set(SYSTEM_INCLUDE_DIRS
