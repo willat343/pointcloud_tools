@@ -1,11 +1,11 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.11)
 project(pointcloud_tools
     VERSION 0.1.0
     DESCRIPTION "Pointcloud Tools"
     LANGUAGES CXX
 )
 
-# Load catkin and all dependencies required for this package
+# Find catkin and required components
 find_package(catkin REQUIRED COMPONENTS
     message_filters
     message_generation
@@ -17,10 +17,24 @@ find_package(catkin REQUIRED COMPONENTS
 
     statistics_msgs
 )
+
+# Find Eigen3
 find_package(Eigen3 REQUIRED)
+
+# Find PCL
 find_package(PCL REQUIRED)
+
+# Find convert
 find_package(convert REQUIRED)
-find_package(mathbox REQUIRED)
+
+# Find mathbox
+include(FetchContent)
+FetchContent_Declare(mathbox
+    GIT_REPOSITORY git@github.com:willat343/mathbox.git
+    GIT_TAG v0.1.0
+    FIND_PACKAGE_ARGS
+)
+FetchContent_MakeAvailable(mathbox)
 
 add_service_files(
     DIRECTORY srv
