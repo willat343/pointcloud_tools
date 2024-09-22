@@ -1,12 +1,14 @@
 <?xml version="1.0"?>
-    <package format="2">
-    <name>pointcloud_tools</name>
+<package format="2">
+    <name>pointcloud_tools_ros</name>
     <version>0.1.0</version>
-    <description>Toolbox for pointclouds</description>
+    <description>Pointcloud Tools ROS</description>
     <maintainer email="william.talbot97@gmail.com">William Talbot</maintainer>
     <license>MIT</license>
 
     <buildtool_depend>catkin</buildtool_depend>
+
+    <depend>pointcloud_tools_catkin</depend>
 
     <depend>message_filters</depend>
     <depend>pcl_conversions</depend>
