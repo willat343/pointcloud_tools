@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 project(pointcloud_tools_catkin
-    VERSION 0.1.0
+    VERSION 0.2.0
     DESCRIPTION "Pointcloud Tools catkin"
     LANGUAGES CXX
 )
