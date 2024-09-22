@@ -1,6 +1,6 @@
 #include <ros/ros.h>
 
-#include "pointcloud_tools/nodes/pointcloud_analyser.hpp"
+#include "pointcloud_tools_ros/pointcloud_analyser.hpp"
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "pointcloud_analyser");

@@ -3,7 +3,7 @@
     <arg name="input_target"    default="input_target"/>
     <arg name="output"          default="$(arg input_source)_distances"/>
 
-    <node pkg="pointcloud_tools" type="compute_distances" name="compute_distances" output="screen">
+    <node pkg="pointcloud_tools_ros" type="compute_distances" name="compute_distances" output="screen">
         <remap from="~input_source"     to="$(arg input_source)"/>
         <remap from="~input_target"     to="$(arg input_target)"/>
         <remap from="~output"           to="$(arg output)"/>

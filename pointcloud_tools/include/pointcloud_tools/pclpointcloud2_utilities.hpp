@@ -3,8 +3,6 @@
 
 #include <pcl/PCLPointCloud2.h>
 #include <pcl/point_traits.h>
-#include <statistics_msgs/SummaryStatistics.h>
-#include <statistics_msgs/SummaryStatisticsArray.h>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -398,20 +396,11 @@ T standard_deviation(const pcl::PCLPointCloud2& pointcloud, const std::string& f
 template<typename T = double>
 T standard_deviation(const pcl::PCLPointCloud2& pointcloud, const std::string& field_name);
 
-statistics_msgs::SummaryStatistics statistics(const pcl::PCLPointCloud2& pointcloud, const pcl::PCLPointField& field);
-
-statistics_msgs::SummaryStatisticsArray statistics(const pcl::PCLPointCloud2& pointcloud);
-
 template<typename T>
 T sum(const pcl::PCLPointCloud2& pointcloud, const pcl::PCLPointField& field);
 
 template<typename T>
 T sum(const pcl::PCLPointCloud2& pointcloud, const std::string& field_name);
-
-std::string summary(const pcl::PCLPointCloud2& pointcloud);
-
-std::string summary(const pcl::PCLPointCloud2& pointcloud,
-        const std::vector<statistics_msgs::SummaryStatistics>& statistics);
 
 double timestamp_as_seconds(const pcl::PCLPointCloud2& pointcloud);
 

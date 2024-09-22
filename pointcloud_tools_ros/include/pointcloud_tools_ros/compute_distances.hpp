@@ -71,6 +71,6 @@ protected:
 
 }
 
-#include "pointcloud_tools/nodes/impl/compute_distances.hpp"
+#include "pointcloud_tools_ros/impl/compute_distances.hpp"
 
 #endif

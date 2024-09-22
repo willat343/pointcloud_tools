@@ -1,4 +1,4 @@
-#include "pointcloud_tools/nodes/pointcloud_file_converter.hpp"
+#include "pointcloud_tools_ros/pointcloud_file_converter.hpp"
 
 #include <pcl/io/auto_io.h>
 #include <pcl_conversions/pcl_conversions.h>
@@ -13,8 +13,8 @@ PointcloudFileConverter::PointcloudFileConverter()
     saver = nh.advertiseService("save_pointcloud", &PointcloudFileConverter::save, this);
 }
 
-bool PointcloudFileConverter::load(pointcloud_tools::file_to_message::Request& request,
-        pointcloud_tools::file_to_message::Response& response) {
+bool PointcloudFileConverter::load(pointcloud_tools_ros::file_to_message::Request& request,
+        pointcloud_tools_ros::file_to_message::Response& response) {
     auto it = publishers.find(request.topic);
     if (it == publishers.end()) {
         std::pair<std::map<std::string, ros::Publisher>::iterator, bool> emplace_it;
@@ -48,8 +48,8 @@ bool PointcloudFileConverter::load(pointcloud_tools::file_to_message::Request& r
     return true;
 }
 
-bool PointcloudFileConverter::save(pointcloud_tools::message_to_file::Request& request,
-        pointcloud_tools::message_to_file::Response& response) {
+bool PointcloudFileConverter::save(pointcloud_tools_ros::message_to_file::Request& request,
+        pointcloud_tools_ros::message_to_file::Response& response) {
     // These must be kept in scope, one is used for each message type
     boost::shared_ptr<pcl::PCLPointCloud2 const> msg_pcl_ptr;
     pcl::PCLPointCloud2 msg_pcl;

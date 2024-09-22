@@ -1,6 +1,6 @@
 #include <ros/ros.h>
 
-#include "pointcloud_tools/nodes/compute_distances.hpp"
+#include "pointcloud_tools_ros/compute_distances.hpp"
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "compute_distances");

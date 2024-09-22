@@ -8,7 +8,7 @@
 
 #include <convert/convert.hpp>
 
-#include "pointcloud_tools//nodes/compute_distances.hpp"
+#include "pointcloud_tools_ros/compute_distances.hpp"
 #include "pointcloud_tools/pclpointcloud2_utilities.hpp"
 
 namespace pct {

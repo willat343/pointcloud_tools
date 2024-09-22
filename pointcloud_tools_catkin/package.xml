@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package format="2">
+    <name>pointcloud_tools_catkin</name>
+    <version>0.2.0</version>
+    <description>pointcloud_tools_catkin</description>
+
+    <maintainer email="william.talbot97@gmail.com">William Talbot</maintainer>
+    <license>BSD-3_Clause</license>
+    <author email="william.talbot97@gmail.com">William Talbot</author>
+
+    <buildtool_depend>catkin</buildtool_depend>
+
+    <build_depend>mathbox_catkin</build_depend>
+    <build_depend>convert_catkin</build_depend>
+    <exec_depend>mathbox_catkin</exec_depend>
+    <exec_depend>convert_catkin</exec_depend>
+</package>
