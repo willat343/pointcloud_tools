@@ -8,8 +8,12 @@ add_executable(${PROJECT_NAME}_tests
     src/test_instances.cpp
 )
 
-target_include_directories(${PROJECT_NAME}_tests SYSTEM PUBLIC
-    ${SYSTEM_INCLUDE_DIRS}
+target_link_libraries(${PROJECT_NAME}_tests
+    ${PROJECT_NAME}
+    ${pointcloud_tools_SYSTEM_LIBRARIES}
+    gtest_main
+    gtest
+    pthread
 )
 
 target_include_directories(${PROJECT_NAME}_tests PUBLIC
@@ -17,9 +21,8 @@ target_include_directories(${PROJECT_NAME}_tests PUBLIC
     include
 )
 
-target_link_libraries(${PROJECT_NAME}_tests
-    ${SYSTEM_LIBRARIES}
-    ${PROJECT_NAME}
+target_include_directories(${PROJECT_NAME}_tests SYSTEM PUBLIC
+    ${pointcloud_tools_SYSTEM_INCLUDE_DIRS}
 )
 
 # Compile Options

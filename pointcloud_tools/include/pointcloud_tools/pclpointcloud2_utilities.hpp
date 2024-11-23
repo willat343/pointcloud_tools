@@ -206,14 +206,15 @@ void deskew_constant_twist(const std::vector<std::pair<double, Eigen::Isometry3d
 /**
  * @brief Deskew a pointcloud under constant twist assumption when the `src` point cloud has a time field containing
  * absolute times (correct with respect to the header time). Calls `deskew_constant_twist`.
- *
- * @param skew
- * @param new_time
- * @param dt
- * @param time_field
- * @param time_ratio_to_seconds
- * @param src
- * @return pcl::PCLPointCloud2
+ * 
+ * @param skew skew transform
+ * @param skew_start_time start time of skew
+ * @param new_time target time to deskew to
+ * @param dt time of point cloud sweep
+ * @param time_field name of the time field
+ * @param time_ratio_to_seconds scale time field by this ratio to get seconds
+ * @param src skewed point cloud
+ * @return pcl::PCLPointCloud2 
  */
 pcl::PCLPointCloud2 deskew_absolute_constant_twist(const Eigen::Isometry3d& skew, const std::uint64_t skew_start_time,
         const std::uint64_t new_time, const double dt, const std::string& time_field,
@@ -226,13 +227,15 @@ pcl::PCLPointCloud2 deskew_absolute_constant_twist(const std::vector<std::pair<d
 /**
  * @brief Deskew a pointcloud under constant twist assumption when the `src` point cloud has a time field containing
  * offset times since the header time. Calls `deskew_constant_twist`.
- *
+ * 
  * @param skew skew transform
- * @param dt time of point cloud sweep
+ * @param skew_start_time start time of skew
  * @param new_time target time to deskew to
+ * @param dt time of point cloud sweep
  * @param time_field name of the time field
  * @param time_ratio_to_seconds scale time field by this ratio to get seconds
  * @param src skewed point cloud
+ * @return pcl::PCLPointCloud2 
  */
 pcl::PCLPointCloud2 deskew_offset_constant_twist(const Eigen::Isometry3d& skew, const std::uint64_t skew_start_time,
         const std::uint64_t new_time, const double dt, const std::string& time_field,

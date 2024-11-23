@@ -7,37 +7,51 @@ project(pointcloud_tools
 
 # CMake Build Type
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-    message(STATUS "Setting build type to Release" )
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose build type" FORCE)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "RelWithDebInfo" "MinSizeRel" )
 endif()
+message(STATUS "Build type set to ${CMAKE_BUILD_TYPE}")
 
 # Options
 option(BUILD_TESTS "Build Tests" OFF)
 
+# Variables
+set(pointcloud_tools_SYSTEM_INCLUDE_DIRS "")
+set(pointcloud_tools_SYSTEM_LIBRARIES "")
+
 # Find Eigen3
 find_package(Eigen3 REQUIRED)
+list(APPEND pointcloud_tools_SYSTEM_INCLUDE_DIRS
+    ${EIGEN3_INCLUDE_DIRS}
+)
+list(APPEND pointcloud_tools_SYSTEM_LIBRARIES
+    Eigen3::Eigen
+)
 
 # Find PCL
 find_package(PCL REQUIRED)
+list(APPEND pointcloud_tools_SYSTEM_INCLUDE_DIRS
+    ${PCL_INCLUDE_DIRS}
+)
+list(APPEND pointcloud_tools_SYSTEM_LIBRARIES
+    ${PCL_LIBRARIES}
+)
 
 # Find mathbox
 find_package(mathbox REQUIRED)
+list(APPEND pointcloud_tools_SYSTEM_INCLUDE_DIRS
+    ${mathbox_INCLUDE_DIRS}
+)
+list(APPEND pointcloud_tools_SYSTEM_LIBRARIES
+    ${mathbox_LIBRARIES}
+)
 
 # Find convert
 find_package(convert REQUIRED)
-
-set(SYSTEM_INCLUDE_DIRS
-    ${EIGEN3_INCLUDE_DIRS}
-    ${PCL_INCLUDE_DIRS}
-    ${mathbox_INCLUDE_DIRS}
+list(APPEND pointcloud_tools_SYSTEM_INCLUDE_DIRS
     ${convert_INCLUDE_DIRS}
 )
-
-set(SYSTEM_LIBRARIES
-    Eigen3::Eigen
-    ${PCL_LIBRARIES}
-    ${mathbox_LIBRARIES}
+list(APPEND pointcloud_tools_SYSTEM_LIBRARIES
     ${convert_LIBRARIES}
 )
 
@@ -49,18 +63,27 @@ add_library(${PROJECT_NAME} SHARED
     src/pclpointcloud2_utilities.cpp
     src/point_types.cpp
 )
+target_link_libraries(${PROJECT_NAME}
+    ${pointcloud_tools_SYSTEM_LIBRARIES}
+)
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
-    ${SYSTEM_INCLUDE_DIRS}
+    ${pointcloud_tools_SYSTEM_INCLUDE_DIRS}
 )
 target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
-target_link_libraries(${PROJECT_NAME}
-    ${SYSTEM_LIBRARIES}
+target_compile_options(${PROJECT_NAME} PUBLIC
+    -fms-extensions             # allows anonymous structs as standard in PCL point types
 )
-target_compile_definitions(${PROJECT_NAME} PUBLIC
-    ${convert_DEFINITIONS}
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag("-Wno-gnu-anonymous-struct" COMPILER_SUPPORTS_WNO_GNU_ANONYMOUS_STRUCT)
+if(COMPILER_SUPPORTS_WNO_GNU_ANONYMOUS_STRUCT)
+    target_compile_options(${PROJECT_NAME} PUBLIC
+        -Wno-gnu-anonymous-struct   # disables warnings about anonymous structs
+    )
+endif()
+target_compile_definitions(${PROJECT_NAME} PRIVATE
     PCL_NO_PRECOMPILE
 )
 set_target_properties(${PROJECT_NAME}

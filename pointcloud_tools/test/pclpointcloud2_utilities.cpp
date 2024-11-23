@@ -292,8 +292,8 @@ TEST(deskew, pointxyz_translation_to_start) {
         Eigen::Isometry3d tf = convert::to<Eigen::Isometry3d, Eigen::Vector3d, Eigen::Quaterniond>(translation,
                 Eigen::Quaterniond::Identity());
         const auto new_time = pointcloud2.header.stamp;
-        pcl::PCLPointCloud2 pointcloud2_deskewed;
-        pct::deskew(tf, 0.1, new_time, pointcloud2, pointcloud2_deskewed);
+        pcl::PCLPointCloud2 pointcloud2_deskewed =
+                pct::deskew_offset_constant_twist(tf, pointcloud2.header.stamp, new_time, 0.1, "t", 1.0, pointcloud2);
         EXPECT_EQ(pointcloud2_deskewed.header.stamp, new_time);
         EXPECT_EQ(pointcloud2_deskewed.header.frame_id, pointcloud2.header.frame_id);
         EXPECT_EQ(pct::size_points(pointcloud2_deskewed), pct::size_points(pointcloud2));
@@ -349,8 +349,8 @@ TEST(deskew, pointxyz_translation_to_mid) {
         Eigen::Isometry3d tf = convert::to<Eigen::Isometry3d, Eigen::Vector3d, Eigen::Quaterniond>(translation,
                 Eigen::Quaterniond::Identity());
         const auto new_time = pointcloud2.header.stamp + 50000;  // 0.05s = 50000 us
-        pcl::PCLPointCloud2 pointcloud2_deskewed;
-        pct::deskew(tf, 0.1, new_time, pointcloud2, pointcloud2_deskewed);
+        pcl::PCLPointCloud2 pointcloud2_deskewed =
+                pct::deskew_offset_constant_twist(tf, pointcloud2.header.stamp, new_time, 0.1, "t", 1.0, pointcloud2);
         EXPECT_EQ(pointcloud2_deskewed.header.stamp, new_time);
         EXPECT_EQ(pointcloud2_deskewed.header.frame_id, pointcloud2.header.frame_id);
         EXPECT_EQ(pct::size_points(pointcloud2_deskewed), pct::size_points(pointcloud2));
@@ -406,8 +406,8 @@ TEST(deskew, pointxyz_translation_to_end) {
         Eigen::Isometry3d tf = convert::to<Eigen::Isometry3d, Eigen::Vector3d, Eigen::Quaterniond>(translation,
                 Eigen::Quaterniond::Identity());
         const auto new_time = pointcloud2.header.stamp + 100000;  // 0.1s = 100000 us
-        pcl::PCLPointCloud2 pointcloud2_deskewed;
-        pct::deskew(tf, 0.1, new_time, pointcloud2, pointcloud2_deskewed);
+        pcl::PCLPointCloud2 pointcloud2_deskewed =
+                pct::deskew_offset_constant_twist(tf, pointcloud2.header.stamp, new_time, 0.1, "t", 1.0, pointcloud2);
         EXPECT_EQ(pointcloud2_deskewed.header.stamp, new_time);
         EXPECT_EQ(pointcloud2_deskewed.header.frame_id, pointcloud2.header.frame_id);
         EXPECT_EQ(pct::size_points(pointcloud2_deskewed), pct::size_points(pointcloud2));

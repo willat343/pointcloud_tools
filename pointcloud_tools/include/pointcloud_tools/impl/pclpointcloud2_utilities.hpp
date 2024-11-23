@@ -76,7 +76,7 @@ using GetFieldDataFunctionHelper = OutT (*)(const pcl::PCLPointCloud2&, const st
  * @return GetFieldDataFunctionHelper<OutT>
  */
 template<typename OutT, typename T, std::enable_if_t<std::is_same_v<OutT, T>, int> = 0>
-GetFieldDataFunctionHelper<OutT> create_get_field_data_function_helper(const pcl::PCLPointField& field) {
+GetFieldDataFunctionHelper<OutT> create_get_field_data_function_helper() {
     return [](const pcl::PCLPointCloud2& pointcloud, const std::size_t i, const std::size_t offset) -> OutT {
         T t;
         std::memcpy(&t, &pointcloud.data[i * pointcloud.point_step + offset], sizeof(T));
@@ -92,8 +92,7 @@ GetFieldDataFunctionHelper<OutT> create_get_field_data_function_helper(const pcl
  * @return GetFieldDataFunctionHelper<std::uint8_t>
  */
 template<>
-inline GetFieldDataFunctionHelper<std::uint8_t> create_get_field_data_function_helper<std::uint8_t, std::uint8_t>(
-        const pcl::PCLPointField& field) {
+inline GetFieldDataFunctionHelper<std::uint8_t> create_get_field_data_function_helper<std::uint8_t, std::uint8_t>() {
     return [](const pcl::PCLPointCloud2& pointcloud, const std::size_t i, const std::size_t offset) -> std::uint8_t {
         return pointcloud.data[i * pointcloud.point_step + offset];
     };
@@ -110,7 +109,7 @@ inline GetFieldDataFunctionHelper<std::uint8_t> create_get_field_data_function_h
  * @return GetFieldDataFunctionHelper<OutT>
  */
 template<typename OutT, typename T, std::enable_if_t<!std::is_same_v<OutT, T>, int> = 0>
-GetFieldDataFunctionHelper<OutT> create_get_field_data_function_helper(const pcl::PCLPointField& field) {
+GetFieldDataFunctionHelper<OutT> create_get_field_data_function_helper() {
     return [](const pcl::PCLPointCloud2& pointcloud, const std::size_t i, const std::size_t offset) -> OutT {
         T t;
         std::memcpy(&t, &pointcloud.data[i * pointcloud.point_step + offset], sizeof(T));
@@ -133,35 +132,35 @@ auto create_get_field_data_function(const pcl::PCLPointField& field) {
     switch (field.datatype) {
         case pcl::PCLPointField::PointFieldTypes::FLOAT32:
             helper = create_get_field_data_function_helper<OutT,
-                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::FLOAT32>::type>(field);
+                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::FLOAT32>::type>();
             break;
         case pcl::PCLPointField::PointFieldTypes::FLOAT64:
             helper = create_get_field_data_function_helper<OutT,
-                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::FLOAT64>::type>(field);
+                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::FLOAT64>::type>();
             break;
         case pcl::PCLPointField::PointFieldTypes::INT8:
             helper = create_get_field_data_function_helper<OutT,
-                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::INT8>::type>(field);
+                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::INT8>::type>();
             break;
         case pcl::PCLPointField::PointFieldTypes::UINT8:
             helper = create_get_field_data_function_helper<OutT,
-                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::UINT8>::type>(field);
+                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::UINT8>::type>();
             break;
         case pcl::PCLPointField::PointFieldTypes::INT16:
             helper = create_get_field_data_function_helper<OutT,
-                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::INT16>::type>(field);
+                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::INT16>::type>();
             break;
         case pcl::PCLPointField::PointFieldTypes::UINT16:
             helper = create_get_field_data_function_helper<OutT,
-                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::UINT16>::type>(field);
+                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::UINT16>::type>();
             break;
         case pcl::PCLPointField::PointFieldTypes::INT32:
             helper = create_get_field_data_function_helper<OutT,
-                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::INT32>::type>(field);
+                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::INT32>::type>();
             break;
         case pcl::PCLPointField::PointFieldTypes::UINT32:
             helper = create_get_field_data_function_helper<OutT,
-                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::UINT32>::type>(field);
+                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::UINT32>::type>();
             break;
         default:
             throw std::runtime_error("field datatype not recognised");
@@ -238,7 +237,7 @@ using SetFieldDataFunctionHelper = void (*)(pcl::PCLPointCloud2&, const std::siz
  * @return SetFieldDataFunctionHelper<InT>
  */
 template<typename InT, typename T, std::enable_if_t<std::is_same_v<InT, T>, int> = 0>
-SetFieldDataFunctionHelper<InT> create_set_field_data_function_helper(const pcl::PCLPointField& field) {
+SetFieldDataFunctionHelper<InT> create_set_field_data_function_helper() {
     return [](pcl::PCLPointCloud2& pointcloud, const std::size_t i, const std::size_t offset, const InT value) -> void {
         std::memcpy(&pointcloud.data[i * pointcloud.point_step + offset], &value, sizeof(T));
     };
@@ -252,8 +251,7 @@ SetFieldDataFunctionHelper<InT> create_set_field_data_function_helper(const pcl:
  * @return SetFieldDataFunctionHelper<std::uint8_t>
  */
 template<>
-inline SetFieldDataFunctionHelper<std::uint8_t> create_set_field_data_function_helper<std::uint8_t, std::uint8_t>(
-        const pcl::PCLPointField& field) {
+inline SetFieldDataFunctionHelper<std::uint8_t> create_set_field_data_function_helper<std::uint8_t, std::uint8_t>() {
     return [](pcl::PCLPointCloud2& pointcloud, const std::size_t i, const std::size_t offset,
                    const std::uint8_t value) -> void { pointcloud.data[i * pointcloud.point_step + offset] = value; };
 }
@@ -269,7 +267,7 @@ inline SetFieldDataFunctionHelper<std::uint8_t> create_set_field_data_function_h
  * @return SetFieldDataFunctionHelper<InT>
  */
 template<typename InT, typename T, std::enable_if_t<!std::is_same_v<InT, T>, int> = 0>
-SetFieldDataFunctionHelper<InT> create_set_field_data_function_helper(const pcl::PCLPointField& field) {
+SetFieldDataFunctionHelper<InT> create_set_field_data_function_helper() {
     return [](pcl::PCLPointCloud2& pointcloud, const std::size_t i, const std::size_t offset,
                    const InT value_in) -> void {
         const T value = static_cast<T>(value_in);
@@ -292,35 +290,35 @@ auto create_set_field_data_function(const pcl::PCLPointField& field) {
     switch (field.datatype) {
         case pcl::PCLPointField::PointFieldTypes::FLOAT32:
             helper = create_set_field_data_function_helper<InT,
-                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::FLOAT32>::type>(field);
+                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::FLOAT32>::type>();
             break;
         case pcl::PCLPointField::PointFieldTypes::FLOAT64:
             helper = create_set_field_data_function_helper<InT,
-                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::FLOAT64>::type>(field);
+                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::FLOAT64>::type>();
             break;
         case pcl::PCLPointField::PointFieldTypes::INT8:
             helper = create_set_field_data_function_helper<InT,
-                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::INT8>::type>(field);
+                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::INT8>::type>();
             break;
         case pcl::PCLPointField::PointFieldTypes::UINT8:
             helper = create_set_field_data_function_helper<InT,
-                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::UINT8>::type>(field);
+                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::UINT8>::type>();
             break;
         case pcl::PCLPointField::PointFieldTypes::INT16:
             helper = create_set_field_data_function_helper<InT,
-                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::INT16>::type>(field);
+                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::INT16>::type>();
             break;
         case pcl::PCLPointField::PointFieldTypes::UINT16:
             helper = create_set_field_data_function_helper<InT,
-                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::UINT16>::type>(field);
+                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::UINT16>::type>();
             break;
         case pcl::PCLPointField::PointFieldTypes::INT32:
             helper = create_set_field_data_function_helper<InT,
-                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::INT32>::type>(field);
+                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::INT32>::type>();
             break;
         case pcl::PCLPointField::PointFieldTypes::UINT32:
             helper = create_set_field_data_function_helper<InT,
-                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::UINT32>::type>(field);
+                    pcl::traits::asType<pcl::PCLPointField::PointFieldTypes::UINT32>::type>();
             break;
         default:
             throw std::runtime_error("field datatype not recognised");
