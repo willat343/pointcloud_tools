@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
     <name>pointcloud_tools_ros</name>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
     <description>Pointcloud Tools ROS</description>
     <maintainer email="william.talbot97@gmail.com">William Talbot</maintainer>
     <license>BSD-3_Clause</license>

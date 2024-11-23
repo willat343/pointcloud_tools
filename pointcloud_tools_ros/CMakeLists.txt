@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.11)
 project(pointcloud_tools_ros
-    VERSION 0.2.0
+    VERSION 0.3.0
     DESCRIPTION "Pointcloud Tools ROS"
     LANGUAGES CXX
 )
