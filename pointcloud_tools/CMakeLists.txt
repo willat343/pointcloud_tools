@@ -19,22 +19,13 @@ option(BUILD_TESTS "Build Tests" OFF)
 set(pointcloud_tools_SYSTEM_INCLUDE_DIRS "")
 set(pointcloud_tools_SYSTEM_LIBRARIES "")
 
-# Find Eigen3
-find_package(Eigen3 REQUIRED)
+# Find convert
+find_package(convert REQUIRED)
 list(APPEND pointcloud_tools_SYSTEM_INCLUDE_DIRS
-    ${EIGEN3_INCLUDE_DIRS}
+    ${convert_INCLUDE_DIRS}
 )
 list(APPEND pointcloud_tools_SYSTEM_LIBRARIES
-    Eigen3::Eigen
-)
-
-# Find PCL
-find_package(PCL REQUIRED)
-list(APPEND pointcloud_tools_SYSTEM_INCLUDE_DIRS
-    ${PCL_INCLUDE_DIRS}
-)
-list(APPEND pointcloud_tools_SYSTEM_LIBRARIES
-    ${PCL_LIBRARIES}
+    ${convert_LIBRARIES}
 )
 
 # Find mathbox
@@ -46,13 +37,22 @@ list(APPEND pointcloud_tools_SYSTEM_LIBRARIES
     ${mathbox_LIBRARIES}
 )
 
-# Find convert
-find_package(convert REQUIRED)
+# Find PCL
+find_package(PCL REQUIRED)
 list(APPEND pointcloud_tools_SYSTEM_INCLUDE_DIRS
-    ${convert_INCLUDE_DIRS}
+    ${PCL_INCLUDE_DIRS}
 )
 list(APPEND pointcloud_tools_SYSTEM_LIBRARIES
-    ${convert_LIBRARIES}
+    ${PCL_LIBRARIES}
+)
+
+# Find Eigen3
+find_package(Eigen3 REQUIRED)
+list(APPEND pointcloud_tools_SYSTEM_INCLUDE_DIRS
+    ${EIGEN3_INCLUDE_DIRS}
+)
+list(APPEND pointcloud_tools_SYSTEM_LIBRARIES
+    Eigen3::Eigen
 )
 
 # Installation directories
@@ -75,14 +75,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 target_compile_options(${PROJECT_NAME} PUBLIC
     -fms-extensions             # allows anonymous structs as standard in PCL point types
+    #-Wno-gnu-anonymous-struct   # disables warnings about anonymous structs (needs >= g++-12)
 )
-include(CheckCXXCompilerFlag)
-check_cxx_compiler_flag("-Wno-gnu-anonymous-struct" COMPILER_SUPPORTS_WNO_GNU_ANONYMOUS_STRUCT)
-if(COMPILER_SUPPORTS_WNO_GNU_ANONYMOUS_STRUCT)
-    target_compile_options(${PROJECT_NAME} PUBLIC
-        -Wno-gnu-anonymous-struct   # disables warnings about anonymous structs
-    )
-endif()
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     PCL_NO_PRECOMPILE
 )

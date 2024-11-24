@@ -13,23 +13,49 @@ find_package(catkin REQUIRED COMPONENTS
     pcl_ros
     roscpp
     sensor_msgs
-    tf2_ros
-
-    pointcloud_tools_catkin
     statistics_msgs
+    tf2_ros
+)
+
+# Variables
+set(pointcloud_tools_ros_SYSTEM_INCLUDE_DIRS "")
+set(pointcloud_tools_ros_SYSTEM_LIBRARIES "")
+
+# Find pointcloud_tools
+find_package(pointcloud_tools REQUIRED)
+list(APPEND pointcloud_tools_ros_SYSTEM_INCLUDE_DIRS
+    ${pointcloud_tools_INCLUDE_DIRS}
+)
+list(APPEND pointcloud_tools_ros_SYSTEM_LIBRARIES
+    ${pointcloud_tools_LIBRARIES}
+)
+
+# Find convert
+find_package(convert REQUIRED)
+list(APPEND pointcloud_tools_ros_SYSTEM_INCLUDE_DIRS
+    ${convert_INCLUDE_DIRS}
+)
+list(APPEND pointcloud_tools_ros_SYSTEM_LIBRARIES
+    ${convert_LIBRARIES}
+)
+
+# Find PCL
+find_package(PCL REQUIRED)
+list(APPEND pointcloud_tools_ros_SYSTEM_INCLUDE_DIRS
+    ${PCL_INCLUDE_DIRS}
+)
+list(APPEND pointcloud_tools_ros_SYSTEM_LIBRARIES
+    ${PCL_LIBRARIES}
 )
 
 # Find Eigen3
 find_package(Eigen3 REQUIRED)
-
-# Find PCL
-find_package(PCL REQUIRED)
-
-# Find convert
-find_package(convert REQUIRED)
-
-# Find pointcloud_tools
-find_package(pointcloud_tools REQUIRED)
+list(APPEND pointcloud_tools_ros_SYSTEM_INCLUDE_DIRS
+    ${EIGEN3_INCLUDE_DIRS}
+)
+list(APPEND pointcloud_tools_ros_SYSTEM_LIBRARIES
+    Eigen3::Eigen
+)
 
 # Custom service files
 add_service_files(
@@ -53,15 +79,14 @@ catkin_package(
         pcl_ros
         roscpp
         sensor_msgs
+        statistics_msgs
         tf2_ros
 
-        pointcloud_tools_catkin
-        statistics_msgs
     DEPENDS
-        EIGEN3
-        PCL
-        convert
         pointcloud_tools
+        convert
+        PCL
+        EIGEN3
 )
 
 # File converter
@@ -73,20 +98,16 @@ add_dependencies(pointcloud_file_converter
     ${catkin_EXPORTED_TARGETS}
     ${PROJECT_NAME}_generate_messages_cpp
 )
-target_include_directories(pointcloud_file_converter SYSTEM PUBLIC
-    ${catkin_INCLUDE_DIRS}
-    ${EIGEN3_INCLUDE_DIRS}
-    ${PCL_INCLUDE_DIRS}
-    ${pointcloud_tools_INCLUDE_DIRS}
+target_link_libraries(pointcloud_file_converter
+    ${pointcloud_tools_ros_SYSTEM_LIBRARIES}
+    ${catkin_LIBRARIES}
 )
 target_include_directories(pointcloud_file_converter PUBLIC
     include
 )
-target_link_libraries(pointcloud_file_converter
-    ${catkin_LIBRARIES}
-    Eigen3::Eigen
-    ${PCL_LIBRARIES}
-    ${pointcloud_tools_LIBRARIES}
+target_include_directories(pointcloud_file_converter SYSTEM PUBLIC
+    ${pointcloud_tools_ros_SYSTEM_INCLUDE_DIRS}
+    ${catkin_INCLUDE_DIRS}
 )
 set_target_properties(pointcloud_file_converter
     PROPERTIES
@@ -102,20 +123,16 @@ add_executable(pointcloud_analyser
 add_dependencies(pointcloud_analyser
     ${catkin_EXPORTED_TARGETS}
 )
+target_link_libraries(pointcloud_analyser
+    ${pointcloud_tools_ros_SYSTEM_LIBRARIES}
+    ${catkin_LIBRARIES}
+)
 target_include_directories(pointcloud_analyser SYSTEM PUBLIC
+    ${pointcloud_tools_ros_SYSTEM_INCLUDE_DIRS}
     ${catkin_INCLUDE_DIRS}
-    ${EIGEN3_INCLUDE_DIRS}
-    ${PCL_INCLUDE_DIRS}
-    ${pointcloud_tools_INCLUDE_DIRS}
 )
 target_include_directories(pointcloud_analyser PUBLIC
     include
-)
-target_link_libraries(pointcloud_analyser
-    ${catkin_LIBRARIES}
-    Eigen3::Eigen
-    ${PCL_LIBRARIES}
-    ${pointcloud_tools_LIBRARIES}
 )
 set_target_properties(pointcloud_analyser
     PROPERTIES
@@ -130,22 +147,16 @@ add_executable(compute_distances
 add_dependencies(compute_distances
     ${catkin_EXPORTED_TARGETS}
 )
+target_link_libraries(compute_distances
+    ${pointcloud_tools_ros_SYSTEM_LIBRARIES}
+    ${catkin_LIBRARIES}
+)
 target_include_directories(compute_distances SYSTEM PUBLIC
+    ${pointcloud_tools_ros_SYSTEM_INCLUDE_DIRS}
     ${catkin_INCLUDE_DIRS}
-    ${EIGEN3_INCLUDE_DIRS}
-    ${PCL_INCLUDE_DIRS}
-    ${convert_INCLUDE_DIRS}
-    ${pointcloud_tools_INCLUDE_DIRS}
 )
 target_include_directories(compute_distances PUBLIC
     include
-)
-target_link_libraries(compute_distances
-    ${catkin_LIBRARIES}
-    Eigen3::Eigen
-    ${PCL_LIBRARIES}
-    ${convert_LIBRARIES}
-    ${pointcloud_tools_LIBRARIES}
 )
 target_compile_definitions(compute_distances PUBLIC
     ${convert_DEFINITIONS}

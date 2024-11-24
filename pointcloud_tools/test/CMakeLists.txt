@@ -27,7 +27,8 @@ target_include_directories(${PROJECT_NAME}_tests SYSTEM PUBLIC
 
 # Compile Options
 target_compile_options(${PROJECT_NAME}_tests PRIVATE
-    -Wall -Wextra -Wpedantic
+    -Wall -Wextra #-Wpedantic
+    #-Wno-gnu-anonymous-struct   # disables warnings about anonymous structs (needs >= g++-12 so disable -Wpedantic)
 )
 
 set_target_properties(${PROJECT_NAME}_tests

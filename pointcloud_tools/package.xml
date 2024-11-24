@@ -8,10 +8,14 @@
     <url type="repository">https://github.com/willat343/pointcloud_tools</url>
     <author email="william.talbot97@gmail.com">William Talbot</author>
 
-    <buildtool_depend>catkin</buildtool_depend>
+    <buildtool_depend>cmake</buildtool_depend>
 
     <depend>convert</depend>
     <depend>eigen</depend>
     <depend>mathbox</depend>
     <depend>pcl</depend>
+
+    <export>
+        <build_type>cmake</build_type>
+    </export>
 </package>
