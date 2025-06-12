@@ -1,0 +1,3 @@
+<launch>
+    <node pkg="pointcloud_tools_ros" type="pointcloud_file_converter" name="$(anon converter)" output="screen"/>
+</launch>
